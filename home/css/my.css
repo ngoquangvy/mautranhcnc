@@ -1,0 +1,347 @@
+@import url('https://maxcdn.bootstrapcdn.com/font-awesome/4.6.0/css/font-awesome.min.css');
+
+.ser-input {
+    border-color: transparent;
+    border-bottom-color: #fff;
+    color: #fff;
+}
+
+.ser-input:focus {
+    border-color: transparent;
+    color: #fff;
+    border-bottom: 1px solid #fff;
+}
+
+::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+}
+
+.scrollnav {
+    height: 200px;
+}
+
+.scrollnav {
+    overflow: hidden;
+    overflow-y: scroll;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+    background: #888;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* .scrollul {height:60px; width:60%;overflow: scroll;}
+
+@media only screen and (max-width: 600px) {
+    .scrollul {height:300px; width:100%;overflow: scroll;}
+  } */
+
+
+.search-full-view {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    left: 0;
+    top: 0;
+    background: rgb(0, 0, 0);
+    opacity: 0;
+    z-index: -1;
+    transition: .5s all;
+    transform: scale(0);
+}
+
+.search-full-view.search-normal-screen {
+    opacity: 1;
+    z-index: 1;
+    transform: scale(2);
+}
+
+.search-full-view .input-group {
+    width: 80%;
+    margin: 0 auto;
+    top: 40%;
+    height: 100px;
+}
+
+.search-full-view .input-group .form-control {
+    background: transparent;
+    border-bottom: 2px solid #fff;
+    font-size: 6em;
+    padding: 10px;
+    vertical-align: unset;
+    color: #cdcdcd;
+}
+
+.search-full-view .input-group .form-control:focus {
+    border-color: #fff;
+    border: 0 !important;
+    border-bottom: 2px solid #fff !important;
+}
+
+.search-full-view .input-group .input-group-addon {
+    background: transparent;
+    font-size: 4em;
+    color: #fff;
+    border: 0;
+    cursor: pointer;
+}
+
+.search-full-view .btn-close {
+    background: transparent;
+    border: 0;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    cursor: pointer;
+}
+
+.search-full-view .btn-close img {
+    width: 60px;
+}
+
+.description {
+    position: absolute;
+    top: 202px;
+    bottom: 2px;
+}
+
+.nav-link {
+    padding: 0;
+}
+
+.type:active {
+
+    background: rgb(236, 236, 216);
+
+}
+
+/* 
+.col-sm-3 img { visibility: hidden; }
+.col-sm-3 img.show { visibility: visible; } */
+
+
+.listcnc {
+    padding-top: 140px;
+}
+
+.phone {
+    position: fixed;
+    bottom: 2px;
+    right: 1px;
+}
+
+.headerr {
+    z-index: 1;
+    position: relative;
+    position: fixed;
+    /* Set the navbar to fixed position */
+    top: 0;
+    /* Position the navbar at the top of the page */
+    width: 100%;
+    /* Full width */
+}
+
+.sticky {
+    position: fixed;
+    top: 0;
+    width: 100%;
+}
+
+/* Add some top padding to the page content to prevent sudden quick movement (as the navigation bar gets a new position at the top of the page (position:fixed and top:0) */
+.sticky+.content {
+    padding-top: 60px;
+}
+
+
+.col-sm-3 {
+
+    padding-top: 1px;
+    position: relative;
+    background-color: white;
+    border: solid 1px rgb(227, 252, 0);
+    height: 300px;
+}
+
+.img-fluid {
+    max-height: 100%;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.img-fluid:hover {
+    z-index: 9999;
+    -ms-transform: scale(1.5);
+    /* IE 9 */
+    -webkit-transform: scale(1.5);
+    /* Safari 3-8 */
+    transform: scale(1.5);
+}
+
+.imgre {
+    width: auto;
+    height: 200px;
+}
+
+img.contacticon {
+    width: 50px;
+}
+
+.footer-top {
+    padding: 60px 0;
+    background: #333;
+    text-align: left;
+    color: #aaa;
+}
+
+.footer-top h3 {
+    padding-bottom: 10px;
+    color: #fff;
+}
+
+.footer-about img.logo-footer {
+    max-width: 200px;
+    margin-top: 0;
+    margin-bottom: 18px;
+}
+
+.footer-about p a {
+    border: 0;
+}
+
+.footer-about p a:hover,
+.footer-about p a:focus {
+    border: 0;
+}
+
+.footer-contact p {
+    word-wrap: break-word;
+}
+
+.footer-contact i {
+    padding-right: 10px;
+    font-size: 18px;
+    color: #666;
+}
+
+.footer-contact p a {
+    border: 0;
+}
+
+.footer-contact p a:hover,
+.footer-contact p a:focus {
+    border: 0;
+}
+
+.footer-links a {
+    color: #aaa;
+    border: 0;
+}
+
+.footer-links a:hover,
+.footer-links a:focus {
+    color: #fff;
+}
+
+.footer-bottom {
+    padding: 15px 0 17px 0;
+    background: #444;
+    text-align: left;
+    color: #aaa;
+}
+
+.footer-social {
+    padding-top: 3px;
+    text-align: right;
+}
+
+.footer-social a {
+    margin-left: 20px;
+    color: #777;
+    border: 0;
+}
+
+.footer-social a:hover,
+.footer-social a:focus {
+    color: #79a05f;
+    border: 0;
+}
+
+.footer-social i {
+    font-size: 24px;
+    vertical-align: middle;
+}
+
+.footer-copyright {
+    padding-top: 5px;
+}
+
+.footer-copyright a {
+    color: #fff;
+    border: 0;
+}
+
+.footer-copyright a:hover,
+.footer-copyright a:focus {
+    color: #aaa;
+    border: 0;
+}
+
+
+.fontname1 {
+    font-family: sans-serif;
+}
+
+div.typepro {
+    padding-left: 10px;
+    display: flex;
+    background-color: #333;
+    overflow: auto;
+    white-space: nowrap;
+}
+
+div.typepro a {
+    margin-left: 15px;
+    display: inline-block;
+    color: white;
+    text-align: center;
+    padding: 14px;
+    text-decoration: none;
+
+}
+
+.dau {
+    margin-top: 5px;
+    z-index: 10;
+    position: absolute;
+    left: 1px;
+}
+
+.cuoi {
+    position: absolute;
+    right: 1px;
+    z-index: 10;
+    margin-top: 5px;
+
+}
+
+div.typepro a:hover {
+    background-color: #777;
+}
+
+@media (max-width: 767px) {
+    .hidden-mobile {
+      display: none;
+    }
+  }
