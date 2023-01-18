@@ -176,9 +176,9 @@ if (
 
           </button>
 
-          <div class="collapse navbar-collapse" id="navbarsExampleDefault">
+          <div class="collapse scrollnav navbar-collapse" id="navbarsExampleDefault">
 
-            <ul class="scrollnav">
+            <ul>
 
               <?php echo $show_protype ?>
 
