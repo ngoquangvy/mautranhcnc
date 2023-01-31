@@ -37,7 +37,7 @@ if ($result_fr1 && ($result_fr1->num_rows > 0)) {
 
                 <div  class="description">
 
-                  <h5>' . $row_fr1["proname"] . '<button id="' . $row_fr1["prourl"] . 'abc" type="button"onClick="deleteproduct(this.value)" class="bg-danger text-white btndel" value="' . $row_fr1["prourl"] . '">DELETE</button></h5>
+                  <h5>' . $row_fr1["proname"] . '<button id="' . $row_fr1["prourl"] . 'abc" type="button" class="bg-danger text-white btndel" value="' . $row_fr1["prourl"] . '">DELETE</button></h5>
 
                   <h7>' . $row_fr1["protype"] . '</h7>
 
