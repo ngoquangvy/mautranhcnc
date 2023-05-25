@@ -1,44 +1,51 @@
 <?php
 
 require_once "../includes/connectdb.php";
-
+if (isset($_POST['search'])) {
+    $searchtext = trim($_POST['search']);
+}
+// set limit and offset for pagination
+$limit = 12; // number of records per page
 if (isset($_GET['page'])) {
-    $id = $_GET['id'];
     $page = $_GET['page']; // current page number
+    $searchtext = $_GET['search'];
 } else {
-    $id = $_GET['id'];
     $page = 1; // default page number
 }
-$limit = 12; // number of records per page
+// Calculate the offset
 $offset = ($page - 1) * $limit;
+// Query the database
+$stmt = $link->prepare("SELECT * FROM products WHERE proname LIKE ? OR protype LIKE ? order by id DESC  LIMIT ? OFFSET ?");
+if ($stmt) { // check if prepare succeeded
+    $searchtexttemp = "%" . $searchtext . "%";
+    $stmt->bind_param("ssii", $searchtexttemp, $searchtexttemp, $limit, $offset);
+    // execute and fetch results
+} else { // handle prepare error
+    echo "Prepare failed: " . $link->error;
+}
+$stmt->execute();
+$result = $stmt->get_result();
 $show_product = "";
-
-$sql_fr1 = "SELECT * FROM products WHERE protype = '$id' ORDER BY id DESC LIMIT $limit OFFSET $offset";
-
-$result_fr1 = $link->query($sql_fr1);
-
-
-
-if ($result_fr1 && ($result_fr1->num_rows > 0)) {
-
-    while ($row_fr1 = mysqli_fetch_assoc($result_fr1)) {
-
+// Check if any results were found
+if ($result->num_rows > 0) {
+    // Output data of each row
+    while ($row = $result->fetch_assoc()) {
         $show_product = $show_product . '<div class="col-sm-3 col-6">
-        <a href="../home/viewimg.php?id=' .  $row_fr1["id"] . '">
+        <a href="../home/viewimg.php?id=' .  $row["id"] . '">
 
         <div class="imgre">
 
-          <img class="img-fluid" src="imgs/' . $row_fr1["prourl"] . '" alt="">
+          <img class="img-fluid" src="imgs/' . $row["prourl"] . '" alt="">
 
           </div>
 
           <div  class="description">
 
-            <h5>' . $row_fr1["proname"] . '</h5>
+            <h5>' . $row["proname"] . '</h5>
 
-            <h7>' . $row_fr1["protype"] . '</h7>
+            <h7>' . $row["protype"] . '</h7>
 
-            <p>' . $row_fr1["description"] . '</p>
+            <p>' . $row["description"] . '</p>
 
           </div>
           </a>
@@ -46,6 +53,41 @@ if ($result_fr1 && ($result_fr1->num_rows > 0)) {
     </div>';
     }
 }
+
+
+// pagination begin
+$stmt = $link->prepare("SELECT COUNT(id) AS total FROM products WHERE proname LIKE ? OR protype LIKE ?");
+if ($stmt) { // check if prepare succeeded
+    $stmt->bind_param("ss", $searchtexttemp, $searchtexttemp);
+    // execute and fetch results
+} else { // handle prepare error
+    echo "Prepare failed: " . $link->error;
+}
+$stmt->execute();
+$result = $stmt->get_result();
+$row = $result->fetch_assoc();
+$total = $row['total']; // total number of records
+// calculate total number of pages for pagination
+$pages = ceil($total / $limit); // total number of pages
+$netxpage = $page < $pages ? $page + 1 : $page;
+$previouspage = $page > 1 ? $page - 1 : $page;
+$pageslist = '<a href="searchpage.php?page=' . $previouspage . '&search=' . $searchtext . '">&laquo;</a>';
+for ($i = 1; $i <= $pages; $i++) {
+    if ($page == $i) {
+        $pageslist = $pageslist . '
+        <a href="#" class="active">' . $i . '</a>
+    ';
+    } else {
+        $pageslist = $pageslist . '
+        <a href="searchpage.php?page=' . $i . '&search=' . $searchtext . '">' . $i . '</a>
+        ';
+    }
+}
+
+$pageslist = $pageslist . '
+    <a href="searchpage.php?page="' . $netxpage . '&search=' . $searchtext . '">&raquo;</a>
+    ';
+// pagination end
 $show_protype = "";
 $sql_fr1 = "SELECT * from products group by protype";
 
@@ -63,36 +105,6 @@ if (
               ';
     }
 }
-
-// pagination begin
-$stmt = $link->prepare('SELECT count(id) as total from products where protype ="' . $id . '"');
-$stmt->execute();
-$result = $stmt->get_result();
-$row = $result->fetch_assoc();
-$total = $row['total']; // total number of records
-// calculate total number of pages for pagination
-$pages = ceil($total / $limit); // total number of pages
-$netxpage = $page < $pages ? $page + 1 : $page;
-$previouspage = $page > 1 ? $page - 1 : $page;
-$pageslist = '<a href="protype.php?page=' . $previouspage . '&id=' . $id . '">&laquo;</a>';
-for ($i = 1; $i <= $pages; $i++) {
-    if ($page == $i) {
-        $pageslist = $pageslist . '
-        <a href="#" class="active">' . $i . '</a>
-    ';
-    } else {
-        $pageslist = $pageslist . '
-        <a href="protype.php?page=' . $i . '&id=' . $id . '">' . $i . '</a>
-        ';
-    }
-}
-$pageslist = $pageslist . '
-    <a href="protype.php?page=' . $netxpage . '&id=' . $id . '">&raquo;</a>
-    ';
-// pagination end
-
-
-
 
 ?>
 <!DOCTYPE html>
@@ -553,9 +565,6 @@ $pageslist = $pageslist . '
                     < </div>
                         <div class="typeprochild" id="typeprochild" style="transform: translateX(5px);">
                             <?php echo $show_protype ?>
-
-
-
                         </div>
                         <div class="cuoi">
                             <button onclick="right()">></button>
@@ -564,8 +573,6 @@ $pageslist = $pageslist . '
             <!-- </div> -->
             <!-- </nav> -->
     </header>
-
-
     <!-- end slide -->
     <div class="listcnc">
         <div class="container">

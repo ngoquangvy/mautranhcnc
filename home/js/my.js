@@ -14,6 +14,21 @@ function left() {
   } else { x = 0; }
   document.getElementById("typeprochild").style.transform = `translateX(${x}px)`;
 }
+
+var div = document.getElementById("typeprochild");
+
+div.addEventListener("wheel", function(event) {
+  event.preventDefault();
+  div.scrollLeft += event.deltaY;
+});
+
+
+document.querySelector("#ser-input").addEventListener("keyup", function (event) {
+  if (event.keyCode === 13) {
+    event.preventDefault();
+    document.querySelector("form").submit();
+  }
+});
 // function deleteproduct(delValue) {
 //   const element = document.getElementById(delValue);
 //   element.remove();
