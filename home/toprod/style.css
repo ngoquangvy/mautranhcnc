@@ -1,0 +1,99 @@
+body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+.typepro {
+    z-index: 10;
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    transform: translateY(-50%);
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scroll-behavior: auto;
+    /* Add any other styling as needed */
+}
+
+.column {
+    position: relative;
+    scroll-snap-align: start;
+    padding: 0 5px;
+    box-sizing: border-box;
+    margin-right: auto;
+    /* Center the column within the flex container */
+    margin-left: auto;
+    /* Center the column within the flex container */
+}
+
+/* .column {
+    flex: 0 0 auto; */
+/* 25% width for each column */
+/* scroll-snap-align: start;
+    padding: 0 5px; */
+/* Adjust as needed */
+/* } */
+
+/* .column {
+    position: relative;
+    scroll-snap-align: start;
+    padding: 0 5px; */
+/* Adjust as needed */
+/* box-sizing: border-box;
+} */
+
+.prod-name {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    text-align: center;
+    background-color: rgba(255, 255, 255, 0.7);
+    padding: 5px;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    z-index: 99;
+    /* Push the span element behind the image */
+}
+
+.column img {
+    width: auto;
+    height: 500px;
+    /* Full height of the viewport */
+    object-fit: contain;
+    /* Maintain aspect ratio and contain the entire container */
+}
+
+.scroll-button {
+    position: fixed;
+    top: 50%;
+    padding: 10px;
+    cursor: pointer;
+    background-color: #ccc;
+    border: none;
+}
+
+footer {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    background-color: rgba(0, 0, 0, 0.2);
+    color: white;
+    text-align: center;
+
+}
+
+#prevButton {
+    left: 0;
+    transform: translateY(-50%);
+}
+
+#nextButton {
+    right: 0;
+    transform: translateY(-50%);
+}

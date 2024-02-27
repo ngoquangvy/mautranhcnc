@@ -1,4 +1,3 @@
-
 var x = 0;
 function right() {
 
@@ -34,6 +33,16 @@ document.querySelector("#ser-input").addEventListener("keyup", function (event) 
 //   element.remove();
 // }
 var navbar = document.getElementById("navbar");
+// Hàm để kiểm tra chiều ngang và ẩn danh sách nếu cần
+function checkScreenWidth() {
+  const screenWidth = window.innerWidth || document.documentElement.clientWidth;
+  const thresholdWidth = 768;
+  if (screenWidth <= thresholdWidth) {
+    document.getElementById('sidebar').style.display = 'none';
+  } else {
+    document.getElementById('sidebar').style.display = 'block';
+  }
+}
 $(document).ready(function () {
   // $(".type").click(function(){
   //     ta=$(this).attr('value');
@@ -47,7 +56,13 @@ $(document).ready(function () {
   // function funcnar(event){
   //     console.log("s");
   // }
+// Gọi hàm để ẩn danh sách khi trang được tải
+  checkScreenWidth();
 
+  // Gọi hàm để kiểm tra chiều ngang khi kích thước của cửa sổ thay đổi
+  $(window).resize(function () {
+    checkScreenWidth();
+  });
 
   $(".btndel").on("click", function () {
     ta = $(this).attr('value');
@@ -95,5 +110,3 @@ $(document).ready(function () {
   // });
 
 })
-
-

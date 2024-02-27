@@ -20,7 +20,7 @@ if (
             $row_fr = mysqli_fetch_assoc($result_fr);
             $show_product = $show_product . '
               <div class="col-sm-3 col-6 loadlz type" value="' . $row_fr1["protype"] . '">
-              <a href="../home/protype.php?id=' .  $row_fr["protype"] . '">
+              <a  href="../home/protype.php?id=' .  $row_fr1["protype"] . '">
               <div class="imgre">
                 <img class="img-fluid" src="imgs/' . $row_fr["prourl"] . '" alt="" loading="lazy">
                 </div>
@@ -64,6 +64,7 @@ $pageslist = $pageslist . '
 // pagination end
 
 $show_protype = "";
+$show_protypelist = "";
 $sql_fr1 = "SELECT * from products group by protype";
 $result_fr1 = $link->query($sql_fr1);
 if (
@@ -77,6 +78,11 @@ if (
                 ' .  $row_fr1["protype"] . '
                   </a>
               ';
+         $show_protypelist = $show_protypelist . ' <li>
+                <a " href="../home/typeofprod/?id=' .  $row_fr1["protype"] . '">
+                ' .  $row_fr1["protype"] . '
+                  </a>
+              </li>';
     }
 }
 
@@ -85,7 +91,6 @@ if (
 <html lang="en">
 
 <head>
-    <link href="css/my.css" rel="stylesheet" type=”text/css”>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mẫu CNC</title>
@@ -487,6 +492,30 @@ if (
         }
 
         /* pagination end */
+        
+        #sidebar {
+            position: relative;
+        }
+
+        .sidebar-heading {
+            margin-bottom: 10px;
+            /* Khoảng cách dưới tiêu đề */
+            color: #2596be;
+            /* Màu chữ */
+            font-weight: bold;
+            /* Độ đậm của chữ */
+            /* Thêm các thuộc tính CSS khác nếu cần thiết */
+        }
+
+        .ultypelist {
+            position: absolute;
+            top: 25px;
+            bottom: 0;
+            width: 100%;
+            overflow-y: auto;
+            background-color: #f0f0f0;
+            padding-left: 0;
+        }
     </style>
 
 </head>
@@ -551,10 +580,22 @@ if (
 
 
     <!-- end slide -->
-    <div class="listcnc">
+   <div class="listcnc">
         <div class="container">
-            <div class="row" id="products">
-                <?php echo $show_product ?>
+            <div class="row">
+                <!-- Column for existing content -->
+                <div class="col-lg-9">
+                    <div class="row" id="products">
+                        <?php echo $show_product ?>
+                    </div>
+                </div>
+                <!-- Empty column -->
+                <div class="col-lg-3" id="sidebar">
+                <h5 class="sidebar-heading">Danh Sách Các Loại mẫu</h5>
+                    <ul class="ultypelist">
+                        <?php echo $show_protypelist ?>
+                    </ul>
+                </div>
             </div>
         </div>
 

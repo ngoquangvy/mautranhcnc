@@ -5,7 +5,7 @@ if (isset($_POST['search'])) {
     $searchtext = trim($_POST['search']);
 }
 // set limit and offset for pagination
-$limit = 12; // number of records per page
+$limit = 24; // number of records per page
 if (isset($_GET['page'])) {
     $page = $_GET['page']; // current page number
     $searchtext = $_GET['search'];
@@ -69,7 +69,7 @@ $row = $result->fetch_assoc();
 $total = $row['total']; // total number of records
 // calculate total number of pages for pagination
 $pages = ceil($total / $limit); // total number of pages
-$netxpage = $page < $pages ? $page + 1 : $page;
+$netxpage = $page < $pages ? $page + 1 : $pages;
 $previouspage = $page > 1 ? $page - 1 : $page;
 $pageslist = '<a href="searchpage.php?page=' . $previouspage . '&search=' . $searchtext . '">&laquo;</a>';
 for ($i = 1; $i <= $pages; $i++) {
@@ -85,7 +85,7 @@ for ($i = 1; $i <= $pages; $i++) {
 }
 
 $pageslist = $pageslist . '
-    <a href="searchpage.php?page="' . $netxpage . '&search=' . $searchtext . '">&raquo;</a>
+    <a href="searchpage.php?page=' . $netxpage . '&search=' . $searchtext . '">&raquo;</a>
     ';
 // pagination end
 $show_protype = "";
@@ -136,7 +136,7 @@ if (
 
         ::-webkit-scrollbar {
             width: 4px;
-            height: 4px;
+            height: 1px;
         }
 
         /* Track */
@@ -439,11 +439,12 @@ if (
         }
 
         div.typepro a {
+            margin-bottom: -5px;
             margin-left: 15px;
             display: inline-block;
             color: white;
             text-align: center;
-            padding-top: 10px;
+            padding-top: 5px;
             text-decoration: none;
         }
 
@@ -560,14 +561,8 @@ if (
                 <span class="navbar-toggler-icon"></span>
             </button> -->
         <div class="typepro" id="typepro">
-            <div class="dau">
-                <button onclick="left()">
-                    < </div>
                         <div class="typeprochild" id="typeprochild" style="transform: translateX(5px);">
                             <?php echo $show_protype ?>
-                        </div>
-                        <div class="cuoi">
-                            <button onclick="right()">></button>
                         </div>
             </div>
             <!-- </div> -->
