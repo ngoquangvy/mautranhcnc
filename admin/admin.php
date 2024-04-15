@@ -10,10 +10,17 @@ if (!isset($_SESSION["id"])) {
 
   header("location: ../admin");
 }
+if (isset($_GET['page'])) {
+  $page = $_GET['page']; // current page number
+} else {
+  $page = 1; // default page number
+}
+$limit = 24; // number of records per page
+$offset = ($page - 1) * $limit;
 
 $show_product = "";
 
-$sql_fr1 = "SELECT * from products order by id DESC";
+$sql_fr1 = "SELECT * from products order by id DESC LIMIT $limit OFFSET $offset";
 
 
 
@@ -49,6 +56,33 @@ if ($result_fr1 && ($result_fr1->num_rows > 0)) {
   }
 }
 
+// pagination begin
+$stmt = $link->prepare("SELECT COUNT(DISTINCT id) AS total FROM products");
+$stmt->execute();
+$result = $stmt->get_result();
+$row = $result->fetch_assoc();
+$total = $row['total']; // total number of records
+// calculate total number of pages for pagination
+$pages = ceil($total / $limit); // total number of pages
+$netxpage = $page < $pages ? $page + 1 : $page;
+$previouspage = $page > 1 ? $page - 1 : $page;
+$pageslist = '<a href="?page=' . $previouspage . '">&laquo;</a>';
+for ($i = 1; $i <= $pages; $i++) {
+  if ($page == $i) {
+    $pageslist = $pageslist . '
+        <a href="#" class="active">' . $i . '</a>
+    ';
+  } else {
+    $pageslist = $pageslist . '
+        <a href="?page=' . $i . '">' . $i . '</a>
+        ';
+  }
+}
+$pageslist = $pageslist . '
+    <a href="?page=' . $netxpage . '">&raquo;</a>
+    ';
+// pagination end
+
 $show_protype = "";
 
 $sql_fr1 = "SELECT * from products group by protype";
@@ -67,7 +101,7 @@ if (
     $show_protype = $show_protype . ' 
 
                 <li class="nav-item">
-                  <p class="nav-link type"  value="' . $row_fr1["protype"] . '" > ' . $row_fr1["protype"] . ' <button type="button" class="bg-danger text-white btndelprotype" value="' . $row_fr1["protype"] . '">DELETE</button></p>
+                  <p class="nav-link type text-white"  value="' . $row_fr1["protype"] . '" > ' . $row_fr1["protype"] . ' <button type="button" class="bg-danger text-white btndelprotype" value="' . $row_fr1["protype"] . '">DELETE</button></p>
               </li>';
   }
 }
@@ -101,7 +135,6 @@ if (
   <script src="../home/js/my.js"></script>
 
 </head>
-
 <body>
 
   <body class="bg-light">
@@ -231,7 +264,11 @@ if (
         </div>
 
       </div>
-
+      <div class="paginationcenter">
+        <div class="pagination">
+          <?php echo $pageslist ?>
+        </div>
+      </div>
   </body>
 
 </html>
