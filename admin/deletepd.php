@@ -10,16 +10,13 @@ if (isset($_SESSION['id'])) {
 
     $sql = 'DELETE FROM products WHERE  prourl = "' . $id . '" ';
 
-    unlink('../home/imgs/' . $id . '');
+    // Delete the image file associated with each record
+    if (file_exists($id)) {
+        unlink($id);
+    }
 
     $result = $link->query($sql);
 
-    $show_product = "";
-
-    $sql_fr1 = 'SELECT * from products ORDER BY id DESC ';
-
-    $result_fr1 = $link->query($sql_fr1);
-    
     $show_product = 'deleted';
 
     echo $show_product;

@@ -426,21 +426,6 @@ if (
             text-decoration: none;
         }
 
-        .dau {
-            margin-top: 5px;
-            z-index: 10;
-            position: absolute;
-            left: 1px;
-        }
-
-        .cuoi {
-            position: absolute;
-            right: 1px;
-            z-index: 10;
-            margin-top: 5px;
-
-        }
-
         .typepro button {
             background-color: #343a40;
             border-color: #343a40;
@@ -452,14 +437,6 @@ if (
             background-color: #fff;
             border-color: #343a40;
             color: #343a40;
-        }
-
-        .typepro .dau {
-            float: left;
-        }
-
-        .typepro .cuoi {
-            float: right;
         }
 
         div.typepro a:hover {

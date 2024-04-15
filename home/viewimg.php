@@ -32,6 +32,7 @@ if ($result_fr1 && ($result_fr1->num_rows > 0)) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MauCNC</title>
+  <link rel="shortcut icon" href="imgs/logo/logomt.jpg">
   <link rel="stylesheet" href="css/bootstrap.min.css">
   <style>
     @import url('https://openseadragon.github.io/openseadragon/openseadragon.min.css');

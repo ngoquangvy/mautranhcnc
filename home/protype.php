@@ -47,6 +47,7 @@ if ($result_fr1 && ($result_fr1->num_rows > 0)) {
     }
 }
 $show_protype = "";
+$show_protypelist = "";
 $sql_fr1 = "SELECT * from products group by protype";
 
 $result_fr1 = $link->query($sql_fr1);
@@ -61,6 +62,11 @@ if (
                   <p class="nav-link typepro type"   value="' . $row_fr1["protype"] . '" > ' . $row_fr1["protype"] . ' </p>
                   </a>
               ';
+        $show_protypelist = $show_protypelist . ' <li>
+              <a " href="../home/typeofprod/?id=' .  $row_fr1["protype"] . '">
+              ' .  $row_fr1["protype"] . '
+                </a>
+            </li>';
     }
 }
 
@@ -266,7 +272,7 @@ $pageslist = $pageslist . '
 
         .typeprochild {
             white-space: nowrap;
-            overflow-x: auto;
+            /* overflow-x: auto; */
         }
 
         .typeprochild:hover {
@@ -422,7 +428,6 @@ $pageslist = $pageslist . '
             padding-left: 10px;
             display: flex;
             background-color: #333;
-            overflow: auto;
             white-space: nowrap;
         }
 
@@ -500,6 +505,19 @@ $pageslist = $pageslist . '
             border: 1px solid #4CAF50;
         }
 
+        .ultypelist {
+            position: absolute;
+            top: 25px;
+            bottom: 0;
+            width: 100%;
+            overflow-y: auto;
+            background-color: #f0f0f0;
+            padding-left: 0;
+        }
+        .typeprochild p {
+            margin-bottom: 0;
+        }
+
         /* pagination end */
     </style>
 
@@ -548,29 +566,32 @@ $pageslist = $pageslist . '
                 <span class="navbar-toggler-icon"></span>
             </button> -->
         <div class="typepro" id="typepro">
-            <div class="dau">
-                <button onclick="left()">
-                    < </div>
-                        <div class="typeprochild" id="typeprochild" style="transform: translateX(5px);">
-                            <?php echo $show_protype ?>
-
-
-
-                        </div>
-                        <div class="cuoi">
-                            <button onclick="right()">></button>
-                        </div>
+            <div class="typeprochild" id="typeprochild" style="transform: translateX(5px);">
+                <?php echo $show_protype ?>
             </div>
-            <!-- </div> -->
-            <!-- </nav> -->
+        </div>
+        <!-- </div> -->
+        <!-- </nav> -->
     </header>
 
 
     <!-- end slide -->
     <div class="listcnc">
         <div class="container">
-            <div class="row" id="products">
-                <?php echo $show_product ?>
+            <div class="row">
+                <!-- Column for existing content -->
+                <div class="col-lg-9">
+                    <div class="row" id="products">
+                        <?php echo $show_product ?>
+                    </div>
+                </div>
+                <!-- Empty column -->
+                <div class="col-lg-3" id="sidebar">
+                    <h5 class="sidebar-heading">Danh Sách Các Loại mẫu</h5>
+                    <ul class="ultypelist">
+                        <?php echo $show_protypelist ?>
+                    </ul>
+                </div>
             </div>
         </div>
 

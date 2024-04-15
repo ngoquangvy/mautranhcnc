@@ -15,19 +15,21 @@ function left() {
 }
 
 var div = document.getElementById("typeprochild");
-
-div.addEventListener("wheel", function(event) {
-  event.preventDefault();
-  div.scrollLeft += event.deltaY;
-});
-
-
-document.querySelector("#ser-input").addEventListener("keyup", function (event) {
-  if (event.keyCode === 13) {
+if (div)
+  div.addEventListener("wheel", function (event) {
     event.preventDefault();
-    document.querySelector("form").submit();
-  }
-});
+    div.scrollLeft += event.deltaY;
+  });
+
+var inputElement = document.querySelector("#ser-input");
+
+if (inputElement)
+  document.querySelector("#ser-input").addEventListener("keyup", function (event) {
+    if (event.keyCode === 13) {
+      event.preventDefault();
+      document.querySelector("form").submit();
+    }
+  });
 // function deleteproduct(delValue) {
 //   const element = document.getElementById(delValue);
 //   element.remove();
@@ -37,11 +39,12 @@ var navbar = document.getElementById("navbar");
 function checkScreenWidth() {
   const screenWidth = window.innerWidth || document.documentElement.clientWidth;
   const thresholdWidth = 768;
-  if (screenWidth <= thresholdWidth) {
-    document.getElementById('sidebar').style.display = 'none';
-  } else {
-    document.getElementById('sidebar').style.display = 'block';
-  }
+  if (document.getElementById('sidebar'))
+    if (screenWidth <= thresholdWidth) {
+      document.getElementById('sidebar').style.display = 'none';
+    } else {
+      document.getElementById('sidebar').style.display = 'block';
+    }
 }
 $(document).ready(function () {
   // $(".type").click(function(){
@@ -56,7 +59,7 @@ $(document).ready(function () {
   // function funcnar(event){
   //     console.log("s");
   // }
-// Gọi hàm để ẩn danh sách khi trang được tải
+  // Gọi hàm để ẩn danh sách khi trang được tải
   checkScreenWidth();
 
   // Gọi hàm để kiểm tra chiều ngang khi kích thước của cửa sổ thay đổi
@@ -70,6 +73,7 @@ $(document).ready(function () {
     xhttp.onload = function () {
       if (this.responseText && this.responseText == "deleted") {
         const element = document.getElementById(ta);
+        console.log(element)
         element.remove();
       } else {
         $("#products").html("Chưa thể xóa");
@@ -85,6 +89,20 @@ $(document).ready(function () {
     //     $("#products").html("Chưa thể xóa");
     //   }
     // })
+  })
+  $(".btndelprotype").on("click", function () {
+    ta = $(this).attr('value');
+    deleteparent = $(this);
+    const xhttp = new XMLHttpRequest();
+    xhttp.onload = function () {
+      if (this.responseText && this.responseText == "deleted") {
+        deleteparent.parent().hide();
+      } else {
+        $("#products").html("Chưa thể xóa");
+      }
+    }
+    xhttp.open("GET", "deletept.php?t=" + ta);
+    xhttp.send();
   })
   // document.getElementById("tktyc").addEventListener("click", function () {
   //   alert("Vui lòng liên hệ SĐT hoặc zalo, Facebook. xin cám ơn!")

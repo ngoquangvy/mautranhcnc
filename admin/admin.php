@@ -67,7 +67,7 @@ if (
     $show_protype = $show_protype . ' 
 
                 <li class="nav-item">
-                  <p class="nav-link type"  value="' . $row_fr1["protype"] . '" > ' . $row_fr1["protype"] . ' <button type="button" class="bg-danger text-white btndel" value="' . $row_fr1["protype"] . '">DELETE</button></p>
+                  <p class="nav-link type"  value="' . $row_fr1["protype"] . '" > ' . $row_fr1["protype"] . ' <button type="button" class="bg-danger text-white btndelprotype" value="' . $row_fr1["protype"] . '">DELETE</button></p>
               </li>';
   }
 }
