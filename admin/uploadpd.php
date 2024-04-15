@@ -25,7 +25,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $total = $row['total']; // total number of records
 
     // Bind result variables
-    if ($total == 0) $total++;
     $countitems = $total;
     // Loop through each uploaded file
     foreach ($_FILES["images"]["tmp_name"] as $key => $tmp_name) {
