@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Upload</title>
+    <link href="../../home/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<style>
+    .container {
+        padding-left: 10px;
+    }
+
+    .compressedImagesList {
+        display: flex;
+        list-style-type: none;
+    }
+
+    .compressedImagesList li {
+        border-style: ridge;
+        height: 200px;
+        width: 150px;
+        position: relative;
+    }
+
+    .compressedImagesList li img {
+        height: 200px;
+        width: 150px;
+    }
+
+    .compressedImagesList li button {
+        top: 0px;
+        right: 0;
+        padding: 4px;
+        position: absolute;
+    }
+
+    #uploadButton {
+        padding-left: 10px;
+        background-color: #008CBA;
+        border-radius: 12px;
+        font-size: 20px;
+        color: white;
+    }
+
+    /* Styling for the remove button */
+    .remove-button {
+        background-color: #f44336;
+        color: white;
+        padding: 8px 12px;
+        border: none;
+        cursor: pointer;
+    }
+</style>
+
+<body>
+    <?php
+    session_start();
+    if (!isset($_SESSION["id"])) {
+        header("Location: ../login.html");
+        exit;
+    }
+    ?>
+    <header class="headerr">
+        <nav class="navbar navbar-expand-md navbar-dark bg-dark d-flex" id="navbar">
+            <div class="container">
+                <a class="navbar-brand" href="#" onclick="location.href='../../admin';" class="text-white">Mẫu CNC</a>
+                <button class="navbar-toggler " type="button" data-toggle="collapse"
+                    data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false"
+                    aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarsExampleDefault">
+                    <ul class="navbar-nav mr-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="location.href='../../admin';">Home</a>
+                        </li>
+                        <li class="nav-item">
+
+                            <a class="nav-link" href="#" onclick="location.href='../../admin/changepass.php';">CHANGE
+                                PASSWORD</a>
+                        </li>
+                        <li class="nav-item active">
+                            <a class="nav-link" href="#" onclick="location.href='../../admin/addproduct';">ADD Products</a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="w-25">
+                    <input type="text" class="form-control rounded-0 bg-dark ser-input" id="ser-input"
+                        placeholder="Search...">
+                </div>
+            </div>
+            <div>
+                <a class="nav-link" onclick="location.href='../admin/logout.php';" href="#">Logout</a>
+            </div>
+        </nav>
+    </header>
+    <div class="container">
+        <div style="display:flex">
+            <input type="file" id="imageUpload" name="images" accept="image/*" multiple>
+
+            <button id="uploadButton" disabled>Hãy chọn ảnh</button>
+        </div>
+        <div style="display: flex;">
+            <div>
+                <h5>Tên mẫu:</h5>
+                <h5>Loại:</h5>
+
+            </div>
+            <div style="display: grid;padding-left: 10px;margin-top: 2px;">
+                <input name="nameimg" type="text" required="required" size="100" placeholder="Nhập tên ... tên sẽ được tự động cập nhật số thứ tự khi tải nhiều ảnh hoặc đã có sẵn loại ">
+                <input name="typeimg" type="text" required="required" size="100" placeholder="Nhập loại ... nếu nhập cùng loại item sẽ được thêm vào loại đã có ">
+            </div>
+        </div>
+        <h5>Ghi chú</h5>
+        <input name="desimg" type="text" size="150" placeholder="Nhập ghi chú ... ">
+    </div>
+    <ul class="compressedImagesList" id="compressedImagesList"></ul>
+    <script src="lossy-compression.js"></script>
+</body>
+
+</html>

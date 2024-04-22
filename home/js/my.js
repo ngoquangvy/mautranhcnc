@@ -69,6 +69,7 @@ $(document).ready(function () {
 
   $(".btndel").on("click", function () {
     ta = $(this).attr('value');
+    console.log("dêde")
     const xhttp = new XMLHttpRequest();
     xhttp.onload = function () {
       if (this.responseText && this.responseText == "deleted") {
@@ -90,19 +91,27 @@ $(document).ready(function () {
     //   }
     // })
   })
+
   $(".btndelprotype").on("click", function () {
     ta = $(this).attr('value');
     deleteparent = $(this);
-    const xhttp = new XMLHttpRequest();
-    xhttp.onload = function () {
-      if (this.responseText && this.responseText == "deleted") {
-        deleteparent.parent().hide();
-      } else {
-        $("#products").html("Chưa thể xóa");
-      }
-    }
-    xhttp.open("GET", "deletept.php?t=" + ta);
-    xhttp.send();
+    // Hiển thị hộp thoại xác nhận
+    var confirmation = confirm("Bạn có chắc muốn xóa không?");
+
+    // Kiểm tra xem người dùng đã xác nhận hay chưa
+    if (confirmation) {
+      const xhttp = new XMLHttpRequest();
+      xhttp.onload = function () {
+        if (this.responseText && this.responseText == "deleted") {
+          // Ẩn phần tử cha của nút được click
+          deleteparent.parent().hide();
+        } else {
+          $("#products").html("Chưa thể xóa");
+        }
+      };
+      xhttp.open("GET", "deletept.php?t=" + ta);
+      xhttp.send();
+    } 
   })
   // document.getElementById("tktyc").addEventListener("click", function () {
   //   alert("Vui lòng liên hệ SĐT hoặc zalo, Facebook. xin cám ơn!")

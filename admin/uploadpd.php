@@ -1,5 +1,4 @@
 <?php
-
 session_start();
 require_once "../includes/connectdb.php";
 
@@ -12,7 +11,6 @@ if (!isset($_SESSION["id"])) {
 $f = "../home/imgs/";
 $extension = array("jpeg", "jpg", "png", "gif");
 $error = [];
-
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $des = $_POST['desimg'];
     $pronamere = $_POST["nameimg"];
@@ -23,15 +21,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $result = $stmtt->get_result();
     $row = $result->fetch_assoc();
     $total = $row['total']; // total number of records
-
     // Bind result variables
     $countitems = $total;
     // Loop through each uploaded file
-    foreach ($_FILES["images"]["tmp_name"] as $key => $tmp_name) {
+    foreach ($_FILES as $key => $tmp_name) {
         $countitems++;
         $proname = $pronamere . $countitems;
-        $file_name = $_FILES['images']['name'][$key];
-        $file_tmp = $_FILES['images']['tmp_name'][$key];
+        $file_name = $tmp_name['name'];
+        $file_tmp = $tmp_name['tmp_name'];
 
         // Generate a unique file name
         $final_file = time() . rand(1000, 9999) . ".jpg";
@@ -54,11 +51,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
                 if ($result) {
                     // Insertion successful
-                    echo '<script>alert("Upload successful");</script>';
-                    echo '<script>window.location.href = "../admin/addproduct.php";</script>';
+                    //echo json_encode(["status" => "success", "message" => "Upload successful"]);
                 } else {
                     // Insertion failed
                     $error_message = "Failed to insert product into database: " . mysqli_error($link);
+                    echo $error_message;
                     array_push($error, $error_message);
                 }
 
@@ -75,10 +72,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             array_push($error, $error_message);
         }
     }
-
     // Output errors if any occurred
     if (!empty($error)) {
-        echo '<script>alert("Errors occurred: ' . implode(', ', $error) . '");</script>';
+        echo $error;
+    } else {
+        echo json_encode(["status" => "success", "message" => "Upload successful"]);
     }
 } else {
     echo "Invalid request";

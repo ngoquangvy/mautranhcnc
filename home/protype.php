@@ -63,7 +63,7 @@ if (
                   </a>
               ';
         $show_protypelist = $show_protypelist . ' <li>
-              <a " href="../home/typeofprod/?id=' .  $row_fr1["protype"] . '">
+              <a " href="../home/protype.php?id=' .  $row_fr1["protype"] . '">
               ' .  $row_fr1["protype"] . '
                 </a>
             </li>';

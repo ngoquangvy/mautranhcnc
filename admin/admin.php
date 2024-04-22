@@ -100,8 +100,8 @@ if (
 
     $show_protype = $show_protype . ' 
 
-                <li class="nav-item">
-                  <p class="nav-link type text-white"  value="' . $row_fr1["protype"] . '" > ' . $row_fr1["protype"] . ' <button type="button" class="bg-danger text-white btndelprotype" value="' . $row_fr1["protype"] . '">DELETE</button></p>
+                <li class="nav-item link-container" style="display:flex;">
+                  <a class="nav-link type text-white" href="../admin/protype.php?id=' . $row_fr1["protype"] . '"  value="' . $row_fr1["protype"] . '" > ' . $row_fr1["protype"] . ' </a><button type="button" class="bg-danger text-white btndelprotype" value="' . $row_fr1["protype"] . '">DELETE</button>
               </li>';
   }
 }
@@ -135,6 +135,7 @@ if (
   <script src="../home/js/my.js"></script>
 
 </head>
+
 <body>
 
   <body class="bg-light">
@@ -145,7 +146,7 @@ if (
 
         <div class="container">
 
-          <a class="navbar-brand" onclick="location.href='../admin';" class="text-white">Mẫu CNC</a>
+          <a class="navbar-brand" href="#" onclick="location.href='../admin';" class="text-white">Mẫu CNC</a>
 
           <button class="navbar-toggler " type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
 
@@ -171,7 +172,7 @@ if (
 
               <li class="nav-item">
 
-                <a class="nav-link" onclick="location.href='../admin/addproduct.php';">ADD Products</a>
+                <a class="nav-link" href="#" onclick="location.href='../admin/addproduct';">ADD Products</a>
 
               </li>
 

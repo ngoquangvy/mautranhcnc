@@ -394,3 +394,18 @@ div.typepro a:hover {
 }
 
 /* pagination end */
+
+/* admin */
+.link-container {
+    display: flex;
+    align-items: center; /* Căn giữa theo chiều dọc */
+}
+
+.link-container .btndelprotype {
+    margin-left: auto; /* Đẩy nút DELETE sang bên phải */
+}
+.link-container:hover{
+    background-color: rgba(125, 115, 115, 0.5);
+    color: white; 
+}
+/* admin end */
