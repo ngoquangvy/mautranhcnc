@@ -92,6 +92,14 @@ if ($result_fr1 && ($result_fr1->num_rows > 0)) {
         main { flex: 1; position: relative; }
         #openseadragon1 { width: 100%; height: 100%; background-color: #0f172a; }
 
+        /* Prevent image overlap on Desktop */
+        @media (min-width: 768px) {
+            #openseadragon1 { 
+                height: calc(100vh - 170px); 
+                margin-top: 85px; 
+            }
+        }
+
         /* Floating Contact Controls */
         .viewer-controls {
             position: fixed;

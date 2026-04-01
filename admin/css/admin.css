@@ -274,16 +274,42 @@ input:checked + .slider:before { transform: translateX(170%); }
 .btn-delete-card:hover { transform: scale(1.1) rotate(90deg); background: #f43f5e; }
 
 /* Category List Sidebar Enhancement */
-.category-list { padding: 0 10px !important; list-style: none; }
+.category-list {
+    padding: 0 10px !important;
+    list-style: none;
+    max-height: 40vh;
+    overflow-y: auto;
+}
+
+/* Custom Scrollbar for Category List */
+.category-list::-webkit-scrollbar { width: 4px; }
+.category-list::-webkit-scrollbar-track { background: transparent; }
+.category-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
+.category-list::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.4); }
+
 .category-list li {
-    margin-bottom: 4px;
-    border-radius: 12px;
+    margin-bottom: 2px;
+    border-radius: 8px;
     display: flex;
     align-items: center;
-    padding-right: 15px;
+    justify-content: space-between;
+    padding-right: 5px;
     transition: var(--transition);
 }
 .category-list li:hover { background: rgba(255,255,255,0.05); }
+
+/* Override Main Menu Padding for Categories */
+.sidebar-nav ul.category-list li a {
+    padding: 8px 15px;
+    font-size: 0.85rem;
+    border-left: none;
+    flex-grow: 1;
+}
+.sidebar-nav ul.category-list li a:hover,
+.sidebar-nav ul.category-list li a.active {
+    background: transparent;
+    border-left: none;
+}
 
 .btndelprotype { 
     color: var(--danger-rose); 

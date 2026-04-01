@@ -144,18 +144,167 @@ if ($cachedData) {
         ::-webkit-scrollbar-thumb:hover { background: #999; }
 
         /* Navigation Header */
+        /* --- PREMIUM HEADER UPGRADE --- */
         .headerr {
-            z-index: 99;
+            z-index: 1050;
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: auto !important;
             bottom: auto !important;
-            background: rgba(33, 37, 41, 0.95) !important;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+            background: rgba(33, 37, 41, 0.85) !important;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .headerr.scrolled {
+            background: rgba(20, 20, 20, 0.95) !important;
+            padding: 5px 0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .navbar-brand { 
+            font-weight: 800; 
+            letter-spacing: -1.2px;
+            display: flex;
+            align-items: center;
+            transition: transform 0.3s ease;
+        }
+        .navbar-brand:hover { transform: scale(1.02); }
+        .navbar-brand img {
+            height: 45px !important;
+            margin-right: 12px;
+            filter: drop-shadow(0 0 8px rgba(39, 174, 96, 0.3));
+            animation: logoPulse 4s infinite ease-in-out;
+            transition: all 0.3s ease;
+        }
+
+        @keyframes logoPulse {
+            0%, 100% { filter: drop-shadow(0 0 5px rgba(39, 174, 96, 0.3)); transform: scale(1); }
+            50% { filter: drop-shadow(0 0 15px rgba(39, 174, 96, 0.6)); transform: scale(1.05); }
+        }
+
+        .nav-link {
+            position: relative;
+            font-weight: 500;
+            margin: 0 10px;
+            transition: color 0.3s;
+        }
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 0;
+            height: 2px;
+            background: var(--accent-color);
+            transition: all 0.3s ease;
+            transform: translateX(-50%);
+        }
+        .nav-link:hover::after, .nav-item.active .nav-link::after {
+            width: 80%;
+        }
+
+        /* Mobile Search Toggle */
+        .search-trigger {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            padding: 8px;
+            display: none; /* Desktop hidden */
+            transition: opacity 0.3s;
+        }
+        .search-trigger:hover { opacity: 0.7; }
+
+        /* Search Overlay - Apple Style */
+        .search-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(15px);
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 20px;
+        }
+        .search-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .search-overlay .close-search {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            font-size: 2rem;
+            color: #fff;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        .search-overlay .close-search:hover { transform: rotate(90deg); color: var(--accent-color); }
+        .search-overlay input {
+            width: 80%;
+            max-width: 600px;
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid rgba(255,255,255,0.2);
+            color: #fff;
+            font-size: 2.5rem;
+            font-weight: 300;
+            text-align: center;
+            padding: 20px;
+            transition: border-color 0.3s;
+        }
+        .search-overlay input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        /* Full-screen Menu (Apple-style) */
+        @media (max-width: 768px) {
+            .navbar-collapse {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100vh;
+                background: rgba(0, 0, 0, 0.98);
+                backdrop-filter: blur(20px);
+                display: flex !important;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                transform: translateY(-100%);
+                transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+                z-index: 1040;
+                overflow: hidden;
+            }
+            .navbar-collapse.show { transform: translateY(0); }
+            .navbar-nav { text-align: center; }
+            .navbar-nav .nav-link { 
+                font-size: 1.8rem; 
+                margin: 15px 0; 
+                opacity: 0;
+                transform: translateY(20px);
+                transition: all 0.4s ease;
+            }
+            .navbar-collapse.show .nav-link { opacity: 1; transform: translateY(0); }
+            
+            #ser-form { display: none; } /* Hide default search on mobile */
+            .search-trigger { display: block; }
+            
+            .navbar-brand span { display: none; } /* Logo Icon only on tiny screens */
+            .navbar-brand img { height: 35px !important; margin-right: 0; }
         }
 
         .navbar-brand { font-weight: 700; letter-spacing: -0.5px; }
@@ -189,6 +338,23 @@ if ($cachedData) {
         }
         .typepro::-webkit-scrollbar { display: none; }
         .typepro.active { cursor: grabbing; scale: 1; }
+
+        /* Category Bar Fade Effect */
+        .typepro-container {
+            position: relative;
+            background: #2d3436;
+        }
+        .typepro-container::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 0;
+            height: 100%;
+            width: 50px;
+            background: linear-gradient(to right, transparent, #2d3436);
+            pointer-events: none;
+            z-index: 2;
+        }
 
         .type-link {
             color: #dfe6e9;
@@ -358,19 +524,59 @@ if ($cachedData) {
             color: white;
         }
 
-        /* Floating Contact */
+        /* Floating Contact Premium */
         .phone {
             position: fixed;
             bottom: 30px;
-            right: 30px;
+            right: 25px;
             z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
         }
-        .phone img {
+        .phone a {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             width: 50px;
-            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
-            transition: transform 0.3s;
+            height: 50px;
+            border-radius: 50%;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
-        .phone img:hover { transform: scale(1.1) rotate(5deg); }
+        .phone a::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            z-index: -1;
+            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+        /* Zalo color */
+        .phone a:nth-child(1)::before { background: #0084ff; } 
+        /* Facebook color */
+        .phone a:nth-child(2)::before { background: #1877f2; animation-delay: 1s; } 
+
+        .phone img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 50%;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: transform 0.3s;
+            z-index: 2;
+            background: white;
+            padding: 2px;
+        }
+        .phone a:hover { transform: translateY(-5px) scale(1.05); }
+        .phone a:hover::before { animation: none; opacity: 0; }
+
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); opacity: 0.8; }
+            80% { transform: scale(1.6); opacity: 0; }
+            100% { transform: scale(1.6); opacity: 0; }
+        }
     </style>
 
 </head>
@@ -379,10 +585,20 @@ if ($cachedData) {
     <header class="headerr">
         <nav class="navbar navbar-expand-md navbar-dark bg-dark d-flex" id="navbar">
             <div class="container">
-                <a class="navbar-brand" href="../home" class="text-white"><img src="imgs/logo/mt_logo.png" alt="Logo" style="height: 40px; margin-right: 10px;"> Mẫu CNC</a>
-                <button class="navbar-toggler " id="btnhide" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
+                <a class="navbar-brand" href="../home">
+                    <img src="imgs/logo/mt_logo.png" alt="Logo">
+                    <span>Mẫu CNC</span>
+                </a>
+                
+                <div class="d-flex align-items-center">
+                    <button class="search-trigger" id="openSearch">
+                        <i class="fa fa-search"></i>
+                    </button>
+                    
+                    <button class="navbar-toggler ml-2" id="btnhide" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                </div>
                 <div class="collapse navbar-collapse" id="navbarsExampleDefault">
                     <ul class="navbar-nav mr-auto">
                         <li class="nav-item active">
@@ -399,39 +615,36 @@ if ($cachedData) {
                         </li>
                     </ul>
                 </div>
-                <form action="searchpage.php" method="post">
+                <form action="searchpage.php" method="post" class="ml-auto d-none d-md-block" id="ser-form">
                     <div class="form-row">
                         <div class="col-8">
-                            <input type="text" class="form-control rounded-0 bg-dark ser-input" id="ser-input" name="search" placeholder="Search...">
+                            <input type="text" class="form-control rounded-pill bg-dark ser-input" id="ser-input" name="search" placeholder="Search...">
                         </div>
                         <div class="col-4">
-                            <input type="submit" value="Search" class="btn btn-primary">
+                            <button type="submit" class="btn btn-primary rounded-pill px-4">
+                                <i class="fa fa-search"></i>
+                            </button>
                         </div>
                     </div>
                 </form>
             </div>
         </nav>
-        <!-- <nav class="navbar navbar-expand-md navbar-dark bg-dark d-flex" id="navbar"> -->
-        <!-- <div class="container">
-          <a class="navbar-brand text-white">Loại Mẫu:</a>
-            <button class="navbar-toggler " type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button> -->
-
-        <div class="typepro" id="typepro">
-            <!-- <div class="dau">
-                <button onclick="left()"><img src="imgs/logo/left-arrow.png" alt="buttonpng" style="width:1px; height: 10px;" /></button>
-            </div> -->
-            <div class="typeprochild" id="typeprochild">
-                <?php echo $show_protype ?>
+        <div class="typepro-container">
+            <div class="typepro" id="typepro">
+                <div class="typeprochild" id="typeprochild">
+                    <?php echo $show_protype ?>
+                </div>
             </div>
-            <!-- <div class="cuoi">
-                <button onclick="right()"><img src="imgs/logo/right-arrow.png" alt="buttonpng" style="width:10px; height: 10px;" /></button>
-            </div> -->
         </div>
-        <!-- </div> -->
-        <!-- </nav> -->
     </header>
+
+    <!-- Search Overlay -->
+    <div class="search-overlay" id="searchOverlay">
+        <div class="close-search" id="closeSearch">&times;</div>
+        <form action="searchpage.php" method="post">
+            <input type="text" name="search" placeholder="Type to search..." autofocus id="overlaySearchInput">
+        </form>
+    </div>
 
 
     <!-- end slide -->

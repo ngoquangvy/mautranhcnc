@@ -219,4 +219,29 @@ $(document).ready(function () {
   $(".contactt").click(function () {
     if (document.getElementById("btnhide")) document.getElementById("btnhide").click();
   });
+
+  // --- PREMIUM HEADER LOGIC ---
+  
+  // 1. Header Scroll Effect (Sticky Shrink)
+  $(window).on('scroll', function() {
+    if ($(window).scrollTop() > 50) {
+      $('.headerr').addClass('scrolled');
+    } else {
+      $('.headerr').removeClass('scrolled');
+    }
+  });
+
+  // 2. Search Overlay Toggle (Mobile Apple-style)
+  $('#openSearch').on('click', function(e) {
+    e.preventDefault();
+    $('#searchOverlay').addClass('active');
+    setTimeout(() => {
+      $('#overlaySearchInput').focus();
+    }, 100); 
+  });
+
+  $('#closeSearch').on('click', function() {
+    $('#searchOverlay').removeClass('active');
+    $('#overlaySearchInput').val(''); 
+  });
 });
