@@ -1,25 +1,47 @@
-var x = 0;
-function right() {
+// ------ HORIZONTAL SCROLL & GRAB LOGIC ------
+const scrollContainer = document.querySelector("#typepro");
 
-  if (x <= 0) {
-    x = x - 150;
-  } else { x = 0; }
-  document.getElementById("typeprochild").style.transform = `translateX(${x}px)`;
+if (scrollContainer) {
+  // Wheel Scroll (Vertical to Horizontal)
+  scrollContainer.addEventListener("wheel", (evt) => {
+    evt.preventDefault();
+    scrollContainer.scrollLeft += evt.deltaY;
+  });
+
+  // Grab to Scroll (Desktop Drag)
+  let isDown = false;
+  let startX;
+  let scrollLeft;
+
+  scrollContainer.addEventListener("mousedown", (e) => {
+    isDown = true;
+    scrollContainer.classList.add("active");
+    startX = e.pageX - scrollContainer.offsetLeft;
+    scrollLeft = scrollContainer.scrollLeft;
+  });
+  scrollContainer.addEventListener("mouseleave", () => {
+    isDown = false;
+    scrollContainer.classList.remove("active");
+  });
+  scrollContainer.addEventListener("mouseup", () => {
+    isDown = false;
+    scrollContainer.classList.remove("active");
+  });
+  scrollContainer.addEventListener("mousemove", (e) => {
+    if (!isDown) return;
+    e.preventDefault();
+    const x = e.pageX - scrollContainer.offsetLeft;
+    const walk = (x - startX) * 2; // scroll-fast factor
+    scrollContainer.scrollLeft = scrollLeft - walk;
+  });
+}
+
+function right() {
+    if (scrollContainer) scrollContainer.scrollBy({ left: 200, behavior: 'smooth' });
 }
 function left() {
-
-  if (x <= 0) {
-    x = x + 150;
-  } else { x = 0; }
-  document.getElementById("typeprochild").style.transform = `translateX(${x}px)`;
+    if (scrollContainer) scrollContainer.scrollBy({ left: -200, behavior: 'smooth' });
 }
-
-var div = document.getElementById("typeprochild");
-if (div)
-  div.addEventListener("wheel", function (event) {
-    event.preventDefault();
-    div.scrollLeft += event.deltaY;
-  });
 
 var inputElement = document.querySelector("#ser-input");
 
@@ -30,12 +52,7 @@ if (inputElement)
       document.querySelector("form").submit();
     }
   });
-// function deleteproduct(delValue) {
-//   const element = document.getElementById(delValue);
-//   element.remove();
-// }
-var navbar = document.getElementById("navbar");
-// Hàm để kiểm tra chiều ngang và ẩn danh sách nếu cần
+
 function checkScreenWidth() {
   const screenWidth = window.innerWidth || document.documentElement.clientWidth;
   const thresholdWidth = 768;
@@ -46,94 +63,160 @@ function checkScreenWidth() {
       document.getElementById('sidebar').style.display = 'block';
     }
 }
+
+// ------ MULTI-DELETE UNDO LOGIC (Improved) ------
+let undoStack = []; // [{ id, type: 'product'|'category', element, timer, undoAction, deleteAction }]
+
+function updateUndoToast() {
+  let toast = document.getElementById('undo-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'undo-toast';
+    toast.innerHTML = `<span id="toast-msg"></span><button id="undo-btn">Hoàn tác</button><div class="toast-progress"></div>`;
+    document.body.appendChild(toast);
+    
+    document.getElementById('undo-btn').onclick = function() {
+      if (undoStack.length > 0) {
+        const item = undoStack.pop();
+        if (item.timer) clearTimeout(item.timer);
+        if (item.undoAction) item.undoAction();
+        updateUndoToast();
+      }
+    };
+  }
+
+  const msgSpan = document.getElementById('toast-msg');
+  if (undoStack.length > 0) {
+    msgSpan.textContent = `Đã xóa ${undoStack.length} mục.`;
+    toast.classList.add('show');
+  } else {
+    toast.classList.remove('show');
+  }
+}
+
+function addToUndoStack(id, type, element, undoAction, deleteAction) {
+  const item = {
+    id: id,
+    type: type,
+    element: element,
+    undoAction: undoAction,
+    deleteAction: deleteAction,
+    timer: null
+  };
+
+  item.timer = setTimeout(() => {
+    // Remove from stack silently before deleting
+    undoStack = undoStack.filter(v => v.id !== id);
+    if (deleteAction) deleteAction();
+    updateUndoToast();
+  }, 5000);
+
+  undoStack.push(item);
+  updateUndoToast();
+}
+
 $(document).ready(function () {
-  // $(".type").click(function(){
-  //     ta=$(this).attr('value');
-  //     $.get("protype.php",{t:ta}, function(data){
-  //       window.location.href="/protype.php";
-  //     })
-  // })
-  // var nar= document.getElementsByClassName("typepro");
-  // nar[0].addEventListener('wheel',funcnar);
-  // console.log(nar);
-  // function funcnar(event){
-  //     console.log("s");
-  // }
-  // Gọi hàm để ẩn danh sách khi trang được tải
   checkScreenWidth();
 
-  // Gọi hàm để kiểm tra chiều ngang khi kích thước của cửa sổ thay đổi
   $(window).resize(function () {
     checkScreenWidth();
   });
 
+  // Product Delete with Multi-Undo
   $(".btndel").on("click", function () {
-    ta = $(this).attr('value');
-    console.log("dêde")
-    const xhttp = new XMLHttpRequest();
-    xhttp.onload = function () {
-      if (this.responseText && this.responseText == "deleted") {
-        const element = document.getElementById(ta);
-        console.log(element)
-        element.remove();
-      } else {
-        $("#products").html("Chưa thể xóa");
-      }
-    }
-    xhttp.open("GET", "deletepd.php?t=" + ta);
-    xhttp.send();
-    // $.get("deletepd.php", { t: ta }, function (data) {
-    //   if (data && data == "deleted") {
-    //     const element = document.getElementById(ta);
-    //     element.remove();
-    //   } else {
-    //     $("#products").html("Chưa thể xóa");
-    //   }
-    // })
-  })
+    const val = $(this).attr('value');
+    const element = document.getElementById(val);
+    if (!element || undoStack.find(item => item.id === val)) return;
 
-  $(".btndelprotype").on("click", function () {
-    ta = $(this).attr('value');
-    deleteparent = $(this);
-    // Hiển thị hộp thoại xác nhận
-    var confirmation = confirm("Bạn có chắc muốn xóa không?");
-
-    // Kiểm tra xem người dùng đã xác nhận hay chưa
-    if (confirmation) {
-      const xhttp = new XMLHttpRequest();
-      xhttp.onload = function () {
-        if (this.responseText && this.responseText == "deleted") {
-          // Ẩn phần tử cha của nút được click
-          deleteparent.parent().hide();
-        } else {
-          $("#products").html("Chưa thể xóa");
+    // Visual hide
+    $(element).css('opacity', '0.2').css('pointer-events', 'none');
+    
+    addToUndoStack(val, 'product', element,
+      function() { // Undo
+        $(element).css('opacity', '1').css('pointer-events', 'auto');
+      }, 
+      function() { // Confirm Delete
+        const xhttp = new XMLHttpRequest();
+        xhttp.onload = function () {
+          if (this.responseText && this.responseText == "deleted") {
+            element.remove();
+          } else {
+            $(element).css('opacity', '1').css('pointer-events', 'auto');
+            alert("Lỗi: Không thể xóa sản phẩm " + val);
+          }
         }
-      };
-      xhttp.open("GET", "deletept.php?t=" + ta);
-      xhttp.send();
-    } 
-  })
-  // document.getElementById("tktyc").addEventListener("click", function () {
-  //   alert("Vui lòng liên hệ SĐT hoặc zalo, Facebook. xin cám ơn!")
-  // });
-  // document.getElementById("contact").addEventListener("click", function () {
-  //   window.scrollTo(0, document.body.scrollHeight);
-  // });
+        xhttp.open("GET", "deletepd.php?t=" + val);
+        xhttp.send();
+      }
+    );
+  });
+
+  // Category Delete with Multi-Undo
+  $(".btndelprotype").on("click", function (e) {
+    e.preventDefault();
+    e.stopPropagation(); // Critical: Stop sidebar link from triggering
+
+    const val = $(this).attr('value');
+    if (undoStack.find(item => item.id === val)) return;
+
+    // Visual hide/disable
+    const isSidebar = $(this).closest('.sidebar-category-item').length > 0;
+    const targets = [];
+    
+    if (isSidebar) {
+      const parentLi = $(this).closest('.sidebar-category-item');
+      parentLi.hide();
+      targets.push(parentLi);
+    } else {
+      // Header button click - we might want to hide the products grid or similar
+      $(this).prop('disabled', true).text('Đang xóa...');
+      const grid = $('#products');
+      grid.css('opacity', '0.2').css('pointer-events', 'none');
+      targets.push($(this), grid);
+    }
+    
+    addToUndoStack(val, 'category', targets,
+      function() { // Undo
+        if (isSidebar) {
+          targets[0].show();
+        } else {
+          targets[0].prop('disabled', false).html('<i class="fa fa-trash mr-2"></i> Xóa danh mục');
+          targets[1].css('opacity', '1').css('pointer-events', 'auto');
+        }
+      }, 
+      function() { // Confirm Delete
+        const xhttp = new XMLHttpRequest();
+        xhttp.onload = function () {
+          if (this.responseText && this.responseText == "deleted") {
+            if (isSidebar) {
+              targets[0].remove();
+            } else {
+              window.location.href = 'admin.php'; // Redirect after deleting current category
+            }
+          } else {
+            // Restore on error
+            if (isSidebar) {
+              targets[0].show();
+            } else {
+              targets[0].prop('disabled', false).html('<i class="fa fa-trash-o mr-2"></i> Xóa danh mục');
+              targets[1].css('opacity', '1').css('pointer-events', 'auto');
+            }
+            alert("Lỗi: Không thể xóa danh mục " + val);
+          }
+        };
+        xhttp.open("GET", "deletept.php?t=" + val);
+        xhttp.send();
+      }
+    );
+  });
 
   $(".typepro").click(function () {
-
-    document.getElementById("btnhide").click();
+    if (document.getElementById("btnhide")) document.getElementById("btnhide").click();
     document.body.scrollTop = 0;
     document.documentElement.scrollTop = 0;
-
   });
+
   $(".contactt").click(function () {
-
-    document.getElementById("btnhide").click();
-
+    if (document.getElementById("btnhide")) document.getElementById("btnhide").click();
   });
-  //   $('.col-sm-3 img').on('load', function() {
-  //     $(this).addClass('show');
-  // });
-
-})
+});

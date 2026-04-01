@@ -1,138 +1,189 @@
 <?php
-
 require_once "../includes/connectdb.php";
 
-
-
 $id = $_GET['id'];
-
 $show_product = "";
+$proname = "Chi tiết mẫu";
+$protype = "";
 
 $sql_fr1 = 'SELECT * from products where id ="' . $id . '"  ';
-
 $result_fr1 = $link->query($sql_fr1);
 
-
-
 if ($result_fr1 && ($result_fr1->num_rows > 0)) {
-
-  while ($row_fr1 = mysqli_fetch_assoc($result_fr1)) {
-
-
-    $show_product = $row_fr1["prourl"];
-  }
+    while ($row_fr1 = mysqli_fetch_assoc($result_fr1)) {
+        $show_product = $row_fr1["prourl"];
+        $proname = $row_fr1["proname"];
+        $protype = $row_fr1["protype"];
+    }
 }
-
 ?>
-
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MauCNC</title>
-  <link rel="shortcut icon" href="imgs/logo/logomt.jpg">
-  <link rel="stylesheet" href="css/bootstrap.min.css">
-  <style>
-    @import url('https://openseadragon.github.io/openseadragon/openseadragon.min.css');
-  </style>
-  <style>
-    body {
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo htmlspecialchars($proname); ?> | Mẫu CNC</title>
+    <link rel="shortcut icon" href="imgs/logo/mt_logo.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <style>
+        :root {
+            --primary-slate: #1e293b;
+            --accent-emerald: #10b981;
+            --glass-bg: rgba(15, 23, 42, 0.8);
+        }
 
-    header {
-      background-color: #f8f9fa;
-      padding: 10px;
-      text-align: left;
-    }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            margin: 0;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
 
-    header img {
-      max-width: 100%;
-      height: auto;
-    }
+        /* Premium Header */
+        .premium-header {
+            position: fixed;
+            top: 0; width: 100%;
+            z-index: 1000;
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding: 15px 0;
+        }
 
-    main {
-      flex: 1;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
 
+        .btn-back {
+            color: white;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            transition: all 0.3s;
+            background: rgba(255,255,255,0.1);
+            padding: 8px 18px;
+            border-radius: 50px;
+        }
+        .btn-back:hover { background: rgba(255,255,255,0.2); color: var(--accent-emerald); }
 
-    img {
-      max-width: 100%;
-      height: auto;
-    }
+        .product-meta h1 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 300px;
+        }
+        .product-meta span { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
 
-    .logo {
-      position: absolute;
-      top: 10px;
-      /* Adjust the top position as needed */
-      left: 10px;
-      /* Adjust the left position as needed */
-      width: 50px;
-      /* Adjust the width as needed */
-      height: auto;
-      /* Maintain aspect ratio */
-    }
+        /* Viewer Area */
+        main { flex: 1; position: relative; }
+        #openseadragon1 { width: 100%; height: 100%; background-color: #0f172a; }
 
-    footer {
-      background-color: #343a40;
-      color: white;
-      text-align: center;
-      padding: 1rem 0;
-    }
-  </style>
+        /* Floating Contact Controls */
+        .viewer-controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            padding: 10px 25px;
+            border-radius: 100px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+        }
+
+        .control-btn {
+            color: white;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: 0.3s;
+        }
+        .control-btn:hover { color: var(--accent-emerald); }
+        .control-btn.zalo { color: #0084ff; }
+        .control-btn.zalo:hover { color: white; }
+
+        .divider { width: 1px; height: 20px; background: rgba(255,255,255,0.2); }
+
+        /* Customization for OpenSeadragon Buttons */
+        .openseadragon-container { font-family: 'Inter', sans-serif !important; }
+    </style>
 </head>
-
 <body>
-  <header class="container">
-    <a href="./">
-      <img class="img-fluid logo" src="./imgs/logo/logomt.jpg" alt="Logo">
-    </a>
-  </header>
 
-  <main class="container">
-    <div id="openseadragon1" style="width: 100%; height: 100vh;"></div>
+    <header class="premium-header">
+        <div class="container header-content">
+            <a href="javascript:history.back()" class="btn-back">
+                <i class="fa fa-arrow-left"></i> <span>Quay lại</span>
+            </a>
+            
+            <div class="product-meta text-center d-none d-md-block">
+                <span><?php echo htmlspecialchars($protype); ?></span>
+                <h1><?php echo htmlspecialchars($proname); ?></h1>
+            </div>
 
-    <!-- Include OpenSeadragon script -->
+            <a href="./" class="btn-back d-none d-sm-flex">
+                <i class="fa fa-home"></i> <span>Trang chủ</span>
+            </a>
+        </div>
+    </header>
+
+    <main>
+        <div id="openseadragon1"></div>
+        
+        <div class="viewer-controls">
+            <a href="https://zalo.me/0338790560" class="control-btn zalo" target="_blank">
+                <i class="fa fa-comments"></i> ZALO ĐẶT HÀNG
+            </a>
+            <div class="divider"></div>
+            <a href="https://www.facebook.com/thien.bui.12327608" class="control-btn" target="_blank">
+                <i class="fa fa-facebook-square"></i> FACEBOOK
+            </a>
+            <div class="divider"></div>
+            <span style="font-size: 0.8rem; color: #64748b; font-weight: 600;">HOTLINE: 0338.790.560</span>
+        </div>
+    </main>
+
     <script src="https://openseadragon.github.io/openseadragon/openseadragon.min.js"></script>
     <script>
-      const viewer = OpenSeadragon({
-        id: 'openseadragon1',
-        prefixUrl: 'https://openseadragon.github.io/openseadragon/images/',
-        tileSources: {
-          type: 'image',
-          url: 'imgs/<?php echo $show_product ?>'
-        }
-      });
+        const viewer = OpenSeadragon({
+            id: 'openseadragon1',
+            prefixUrl: 'https://openseadragon.github.io/openseadragon/images/',
+            tileSources: {
+                type: 'image',
+                url: 'imgs/<?php echo $show_product ?>'
+            },
+            showRotationControl: true,
+            gestureSettingsMouse: { clickToZoom: true },
+            animationTime: 0.5,
+            blendingTime: 0.1,
+            constrainDuringPan: true,
+            maxZoomLevel: 10,
+            minZoomLevel: 0.5,
+            visibilityRatio: 1,
+            zoomPerClick: 2
+        });
     </script>
-  </main>
-
-  <footer class="container">
-    <div class="row">
-      <div class="col-lg-6 col-md-12 mb-4 mb-md-0">
-        <h5 class="text-uppercase">Mẫu CNC</h5>
-        <p>Quản Lý: Thiện Bùi </p>
-        <p>Phone: 0338790560 </p>
-        <!-- Add other contact information as needed -->
-      </div>
-
-      <div class="col-lg-3 col-md-6 mb-4 mb-md-0">
-        <p id="tktyc">Thiết kế theo yêu cầu </p>
-      </div>
-    </div>
-
-    <div class="text-center" style="background-color: rgba(0, 0, 0, 0.2);">
-      <a class="text-dark" href="">MauTranhCNC</a>
-    </div>
-  </footer>
-
-  <script src="js/bootstrap.bundle.min.js"></script>
 </body>
-
-</html>
+</html>

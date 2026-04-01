@@ -124,11 +124,17 @@ document.getElementById('uploadButton').addEventListener('click', function () {
     // Lấy giá trị từ các trường input và thêm vào FormData
     const nameInput = document.querySelector('input[name="nameimg"]');
     const typeInput = document.querySelector('input[name="typeimg"]');
-    const descriptionInput = document.querySelector('input[name="desimg"]');
+    const descriptionInput = document.querySelector('textarea[name="desimg"]');
 
-    formData.append('nameimg', nameInput.value); // Thêm giá trị của trường 'nameimg' vào FormData
-    formData.append('typeimg', typeInput.value); // Thêm giá trị của trường 'typeimg' vào FormData
-    formData.append('desimg', descriptionInput.value); // Thêm giá trị của trường 'desimg' vào FormData
+    if (nameInput && typeInput && descriptionInput) {
+        formData.append('nameimg', nameInput.value);
+        formData.append('typeimg', typeInput.value);
+        formData.append('desimg', descriptionInput.value);
+    } else {
+        console.error('One or more input fields are missing');
+        alert('Lỗi: Không tìm thấy các trường nhập liệu.');
+        return;
+    }
 
     // Gửi FormData lên máy chủ (ví dụ: sử dụng fetch hoặc XMLHttpRequest)
     fetch('../uploadpd.php', {

@@ -22,33 +22,23 @@ $result_fr1 = $link->query($sql_fr1);
 if ($result_fr1 && ($result_fr1->num_rows > 0)) {
 
     while ($row_fr1 = mysqli_fetch_assoc($result_fr1)) {
-
-        $show_product = $show_product . '<div class="col-sm-3 col-6">
-        <a href="../home/viewimg.php?id=' .  $row_fr1["id"] . '">
-
-        <div class="imgre">
-
-          <img class="img-fluid" src="imgs/' . $row_fr1["prourl"] . '" alt="">
-
-          </div>
-
-          <div  class="description">
-
-            <h5>' . $row_fr1["proname"] . '</h5>
-
-            <h7>' . $row_fr1["protype"] . '</h7>
-
-            <p>' . $row_fr1["description"] . '</p>
-
-          </div>
-          </a>
-
-    </div>';
+        $show_product = $show_product . '
+        <div class="product-item">
+            <a href="../home/viewimg.php?id=' .  $row_fr1["id"] . '">
+                <div class="img-container">
+                    <img src="imgs/' . $row_fr1["prourl"] . '" alt="' . htmlspecialchars($row_fr1["proname"]) . '" loading="lazy">
+                </div>
+                <div class="product-info">
+                    <h5>' . $row_fr1["proname"] . '</h5>
+                    <p>' . $row_fr1["description"] . '</p>
+                </div>
+            </a>
+        </div>';
     }
 }
 $show_protype = "";
 $show_protypelist = "";
-$sql_fr1 = "SELECT * from products group by protype";
+$sql_fr1 = "SELECT protype from products group by protype";
 
 $result_fr1 = $link->query($sql_fr1);
 if (
@@ -59,7 +49,7 @@ if (
         $show_protype = $show_protype . ' 
             
                 <a href="../home/protype.php?id=' .  $row_fr1["protype"] . '">
-                  <p class="nav-link typepro type"   value="' . $row_fr1["protype"] . '" > ' . $row_fr1["protype"] . ' </p>
+                  <p class="nav-link type-link type" value="' . $row_fr1["protype"] . '" > ' . $row_fr1["protype"] . ' </p>
                   </a>
               ';
         $show_protypelist = $show_protypelist . ' <li>
@@ -109,416 +99,250 @@ $pageslist = $pageslist . '
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mẫu CNC</title>
-    <link rel="shortcut icon" href="imgs/logo/logomt.jpg">
+    <link rel="shortcut icon" href="imgs/logo/mt_logo.png">
     <script src="js/jquery.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <script src="js/bootstrap.min.js"></script>
     <style>
-        @import url('https://maxcdn.bootstrapcdn.com/font-awesome/4.6.0/css/font-awesome.min.css');
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #27ae60;
+            --bg-light: #f8f9fa;
+            --text-dark: #2d3436;
+            --card-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            --hover-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--bg-light);
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+
+        /* Modern Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #999; }
+
+        /* Navigation Header */
+        .headerr {
+            z-index: 99;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: auto !important;
+            bottom: auto !important;
+            background: rgba(33, 37, 41, 0.95) !important;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .navbar-brand { font-weight: 700; letter-spacing: -0.5px; }
 
         .ser-input {
-            border-color: transparent;
-            border-bottom-color: #fff;
-            color: #fff;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.1) !important;
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white !important;
+            padding: 5px 20px;
+            transition: all 0.3s;
         }
-
         .ser-input:focus {
-            border-color: transparent;
-            color: #fff;
-            border-bottom: 1px solid #fff;
+            background: rgba(255,255,255,0.2) !important;
+            box-shadow: none;
+            border-color: var(--accent-color);
         }
 
-        ::-webkit-scrollbar {
-            width: 4px;
-            height: 4px;
+        .typepro {
+            background: #2d3436;
+            padding: 10px 0;
+            overflow-x: auto;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE/Edge */
+            cursor: grab;
+            user-select: none;
+        }
+        .typepro::-webkit-scrollbar { display: none; }
+        .typepro.active { cursor: grabbing; scale: 1; }
+
+        .type-link {
+            color: #dfe6e9;
+            text-decoration: none;
+            padding: 6px 16px;
+            margin: 0 5px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            border-radius: 20px;
+            transition: all 0.3s;
+            border: 1px solid transparent;
+            display: inline-block;
+        }
+        .type-link:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
         }
 
-        /* Track */
-        ::-webkit-scrollbar-track {
+        /* Masonry Grid Layout */
+        .listcnc { padding-top: 160px; padding-bottom: 60px; }
+        
+        #products {
+            display: block;
+            column-count: 4;
+            column-gap: 20px;
+        }
+
+        @media (max-width: 1200px) { #products { column-count: 3; } }
+        @media (max-width: 992px) { #products { column-count: 2; } .sidebar-wrapper { display: none; } }
+        @media (max-width: 576px) { #products { column-count: 2; column-gap: 12px; } }
+
+        /* Product Card Redesign */
+        .product-item {
+            display: inline-block;
+            width: 100%;
+            break-inside: avoid;
+            margin-bottom: 20px;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: none;
+            position: relative;
+        }
+        @media (max-width: 576px) { .product-item { margin-bottom: 12px; } }
+
+        .product-item:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--hover-shadow);
+        }
+
+        .product-item a { text-decoration: none; color: inherit; }
+
+        .img-container {
+            width: 100%;
+            overflow: hidden;
             background: #f1f1f1;
         }
-
-        /* Handle */
-        ::-webkit-scrollbar-thumb {
-            background: #888;
-        }
-
-        /* Handle on hover */
-        ::-webkit-scrollbar-thumb:hover {
-            background: #555;
-        }
-
-        /* .scrollul {height:60px; width:60%;overflow: scroll;}
-
-@media only screen and (max-width: 600px) {
-    .scrollul {height:300px; width:100%;overflow: scroll;}
-  } */
-
-
-        .search-full-view {
-            position: fixed;
+        .img-container img {
             width: 100%;
-            height: 100%;
-            left: 0;
-            top: 0;
-            background: rgb(0, 0, 0);
-            opacity: 0;
-            z-index: -1;
-            transition: .5s all;
-            transform: scale(0);
-        }
-
-        .search-full-view.search-normal-screen {
-            opacity: 1;
-            z-index: 1;
-            transform: scale(2);
-        }
-
-        .search-full-view .input-group {
-            width: 80%;
-            margin: 0 auto;
-            top: 40%;
-            height: 100px;
-        }
-
-        .search-full-view .input-group .form-control {
-            background: transparent;
-            border-bottom: 2px solid #fff;
-            font-size: 6em;
-            padding: 10px;
-            vertical-align: unset;
-            color: #cdcdcd;
-        }
-
-        .search-full-view .input-group .form-control:focus {
-            border-color: #fff;
-            border: 0 !important;
-            border-bottom: 2px solid #fff !important;
-        }
-
-        .search-full-view .input-group .input-group-addon {
-            background: transparent;
-            font-size: 4em;
-            color: #fff;
-            border: 0;
-            cursor: pointer;
-        }
-
-        .search-full-view .btn-close {
-            background: transparent;
-            border: 0;
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            cursor: pointer;
-        }
-
-        .search-full-view .btn-close img {
-            width: 60px;
-        }
-
-        .description {
-            position: absolute;
-            top: 202px;
-            bottom: 2px;
-        }
-
-        .nav-link {
-            padding: 0;
-        }
-
-        .type:active {
-
-            background: rgb(236, 236, 216);
-
-        }
-
-        /* 
-.col-sm-3 img { visibility: hidden; }
-.col-sm-3 img.show { visibility: visible; } */
-
-
-        .listcnc {
-            padding-top: 140px;
-        }
-
-        .phone {
-            position: fixed;
-            bottom: 2px;
-            right: 1px;
-        }
-
-        .headerr {
-            z-index: 1;
-            position: relative;
-            position: fixed;
-            /* Set the navbar to fixed position */
-            top: 0;
-            /* Position the navbar at the top of the page */
-            width: 100%;
-            /* Full width */
-        }
-
-        .sticky {
-            position: fixed;
-            top: 0;
-            width: 100%;
-        }
-
-        /* Add some top padding to the page content to prevent sudden quick movement (as the navigation bar gets a new position at the top of the page (position:fixed and top:0) */
-        .sticky+.content {
-            padding-top: 60px;
-        }
-
-        .typeprochild {
-            white-space: nowrap;
-            /* overflow-x: auto; */
-        }
-
-        .typeprochild:hover {
-            overflow-x: scroll;
-        }
-
-        .btn-primary {
-            background-color: #343a40;
-            border-color: #343a40;
-        }
-
-        .col-sm-3 {
-
-            padding-top: 1px;
-            position: relative;
-            background-color: white;
-            border: solid 1px rgb(227, 252, 0);
-            height: 300px;
-        }
-
-        .img-fluid {
-            position: relative;
-            max-height: 100%;
+            height: auto;
             display: block;
-            margin-left: auto;
-            margin-right: auto;
+            transition: transform 0.6s ease;
         }
+        .product-item:hover .img-container img { transform: scale(1.08); }
 
-        .img-fluid:hover {
-            z-index: 9999;
-            -ms-transform: scale(1.5);
-            /* IE 9 */
-            -webkit-transform: scale(1.5);
-            /* Safari 3-8 */
-            transform: scale(1.5);
-        }
-
-        .imgre {
-            width: auto;
-            height: 200px;
-        }
-
-        img.contacticon {
-            width: 50px;
-        }
-
-        .footer-top {
-            padding: 60px 0;
-            background: #333;
-            text-align: left;
-            color: #aaa;
-        }
-
-        .footer-top h3 {
-            padding-bottom: 10px;
-            color: #fff;
-        }
-
-        .footer-about img.logo-footer {
-            max-width: 200px;
-            margin-top: 0;
-            margin-bottom: 18px;
-        }
-
-        .footer-about p a {
-            border: 0;
-        }
-
-        .footer-about p a:hover,
-        .footer-about p a:focus {
-            border: 0;
-        }
-
-        .footer-contact p {
-            word-wrap: break-word;
-        }
-
-        .footer-contact i {
-            padding-right: 10px;
-            font-size: 18px;
-            color: #666;
-        }
-
-        .footer-contact p a {
-            border: 0;
-        }
-
-        .footer-contact p a:hover,
-        .footer-contact p a:focus {
-            border: 0;
-        }
-
-        .footer-links a {
-            color: #aaa;
-            border: 0;
-        }
-
-        .footer-links a:hover,
-        .footer-links a:focus {
-            color: #fff;
-        }
-
-        .footer-bottom {
-            padding: 15px 0 17px 0;
-            background: #444;
-            text-align: left;
-            color: #aaa;
-        }
-
-        .footer-social {
-            padding-top: 3px;
-            text-align: right;
-        }
-
-        .footer-social a {
-            margin-left: 20px;
-            color: #777;
-            border: 0;
-        }
-
-        .footer-social a:hover,
-        .footer-social a:focus {
-            color: #79a05f;
-            border: 0;
-        }
-
-        .footer-social i {
-            font-size: 24px;
-            vertical-align: middle;
-        }
-
-        .footer-copyright {
-            padding-top: 5px;
-        }
-
-        .footer-copyright a {
-            color: #fff;
-            border: 0;
-        }
-
-        .footer-copyright a:hover,
-        .footer-copyright a:focus {
-            color: #aaa;
-            border: 0;
-        }
-
-
-        .fontname1 {
-            font-family: sans-serif;
-        }
-
-        div.typepro {
-            padding-left: 10px;
-            display: flex;
-            background-color: #333;
+        .product-info { padding: 15px; background: white; }
+        .product-info h5 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: var(--text-dark);
             white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .product-info h7 {
+            font-size: 0.8rem;
+            color: #636e72;
+            display: block;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .product-info p {
+            font-size: 0.85rem;
+            color: #b2bec3;
+            margin: 0;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            line-height: 1.4;
         }
 
-        div.typepro a {
-            margin-left: 15px;
-            display: inline-block;
-            color: white;
-            text-align: center;
-            padding-top: 10px;
-            text-decoration: none;
+        /* Sidebar Styles */
+        .sidebar-heading {
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+            color: var(--primary-color);
+            position: relative;
+            padding-bottom: 10px;
         }
-
-        .dau {
-            margin-top: 5px;
-            z-index: 10;
+        .sidebar-heading:after {
+            content: '';
             position: absolute;
-            left: 1px;
-        }
-
-        .cuoi {
-            position: absolute;
-            right: 1px;
-            z-index: 10;
-            margin-top: 5px;
-
-        }
-
-        .typepro button {
-            background-color: #343a40;
-            border-color: #343a40;
-            color: #fff;
-            width: calc(50% - 5px);
-        }
-
-        .typepro button:hover {
-            background-color: #fff;
-            border-color: #343a40;
-            color: #343a40;
-        }
-
-        .typepro .dau {
-            float: left;
-        }
-
-        .typepro .cuoi {
-            float: right;
-        }
-
-        div.typepro a:hover {
-            background-color: #777;
-        }
-
-        /* pagination begin */
-        .paginationcenter {
-            text-align: center;
-        }
-
-        .pagination {
-            display: inline-block;
-        }
-
-        .pagination a {
-            color: black;
-            float: left;
-            padding: 8px 16px;
-            text-decoration: none;
-            transition: background-color .3s;
-            border: 1px solid #ddd;
-            margin: 0 4px;
-        }
-
-        .pagination a.active {
-            background-color: #4CAF50;
-            color: white;
-            border: 1px solid #4CAF50;
+            left: 0;
+            bottom: 0;
+            width: 40px;
+            height: 3px;
+            background: var(--accent-color);
         }
 
         .ultypelist {
-            position: absolute;
-            top: 25px;
-            bottom: 0;
-            width: 100%;
-            overflow-y: auto;
-            background-color: #f0f0f0;
-            padding-left: 0;
+            list-style: none;
+            padding: 0;
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--card-shadow);
+            overflow: hidden;
         }
-        .typeprochild p {
-            margin-bottom: 0;
+        .ultypelist li a {
+            display: block;
+            padding: 12px 20px;
+            color: var(--text-dark);
+            text-decoration: none;
+            border-bottom: 1px solid #f1f1f1;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+        .ultypelist li a:hover {
+            background: #f8f9fa;
+            color: var(--accent-color);
+            padding-left: 25px;
         }
 
-        /* pagination end */
+        /* Pagination Premium */
+        .paginationcenter { margin-top: 40px; }
+        .pagination a {
+            width: 40px;
+            height: 40px;
+            line-height: 40px;
+            text-align: center;
+            display: inline-block;
+            background: white;
+            border-radius: 50%;
+            margin: 0 4px;
+            color: var(--primary-color);
+            box-shadow: var(--card-shadow);
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+        .pagination a.active { background: var(--accent-color); color: white; border: none; }
+        .pagination a:hover:not(.active) { background: var(--primary-color); color: white; }
+
+        /* Floating Contact */
+        .phone {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+        }
+        .phone img {
+            width: 50px;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+            transition: transform 0.3s;
+        }
+        .phone img:hover { transform: scale(1.1) rotate(5deg); }
     </style>
 
 </head>
@@ -527,7 +351,7 @@ $pageslist = $pageslist . '
     <header class="headerr">
         <nav class="navbar navbar-expand-md navbar-dark bg-dark d-flex" id="navbar">
             <div class="container">
-                <a class="navbar-brand" href="../home" class="text-white">Mẫu CNC</a>
+                <a class="navbar-brand" href="../home" class="text-white"><img src="imgs/logo/mt_logo.png" alt="Logo" style="height: 40px; margin-right: 10px;"> Mẫu CNC</a>
                 <button class="navbar-toggler " id="btnhide" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
@@ -566,7 +390,7 @@ $pageslist = $pageslist . '
                 <span class="navbar-toggler-icon"></span>
             </button> -->
         <div class="typepro" id="typepro">
-            <div class="typeprochild" id="typeprochild" style="transform: translateX(5px);">
+            <div class="typeprochild" id="typeprochild">
                 <?php echo $show_protype ?>
             </div>
         </div>
@@ -581,25 +405,27 @@ $pageslist = $pageslist . '
             <div class="row">
                 <!-- Column for existing content -->
                 <div class="col-lg-9">
-                    <div class="row" id="products">
+                    <div id="products">
                         <?php echo $show_product ?>
                     </div>
                 </div>
-                <!-- Empty column -->
-                <div class="col-lg-3" id="sidebar">
-                    <h5 class="sidebar-heading">Danh Sách Các Loại mẫu</h5>
+                <!-- Sidebar -->
+                <div class="col-lg-3 sidebar-wrapper" id="sidebar">
+                    <h5 class="sidebar-heading">Phân loại mẫu</h5>
                     <ul class="ultypelist">
                         <?php echo $show_protypelist ?>
                     </ul>
                 </div>
             </div>
+            </div>
         </div>
 
-        <div class="phone" style="z-index:999999999" bg-white text-danger">
-            <div><b>Contact</b></div>
-            <a href="https://zalo.me/0338790560"><img class="contacticon" src="imgs/logo/zalo.png" alt=""> </a>
-            <a href="https://www.facebook.com/thien.bui.12327608"><img class="contacticon" src="imgs/logo/fb.png" alt=""> </a>
+        <!-- Floating Contact -->
+        <div class="phone">
+            <a href="https://zalo.me/0338790560" title="Zalo Contact"><img src="imgs/logo/zalo.png" alt="Zalo"></a>
+            <a href="https://www.facebook.com/thien.bui.12327608" title="Facebook Contact"><img src="imgs/logo/fb.png" alt="Facebook"></a>
         </div>
+
         <div class="paginationcenter">
             <div class="pagination">
                 <?php echo $pageslist ?>
@@ -613,7 +439,8 @@ $pageslist = $pageslist . '
                 <div class="row">
                     <!--Grid column-->
                     <div class="col-lg-6 col-md-12 mb-4 mb-md-0">
-                        <h5 class="text-uppercase">Mẫu CNC</h5>
+                        <img class="logo-footer mb-4" src="imgs/logo/mt_logo.png" alt="MauTranhCNC Logo" style="max-width: 150px;">
+                        <h5 class="text-uppercase">Mẫu Tranh CNC</h5>
                         <p>Quản Lý: Thiện Bùi </p>
                         <p>Phone: 0338790560 </p>
                         <p>FaceBook: facebook.com/thien.bui.12327608 </p>

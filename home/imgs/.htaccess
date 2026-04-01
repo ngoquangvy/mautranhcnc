@@ -1,17 +1,10 @@
-# Prevent Hotlinking of Images
-<IfModule mod_rewrite.c>
-    RewriteEngine On
-    
-    # Allow empty referer (direct access) - optional, set to off for maximum security
-    # RewriteCond %{HTTP_REFERER} !^$
-    
-    # Allow localhost and Docker container common referers
-    RewriteCond %{HTTP_REFERER} !^http(s)?://(www\.)?localhost [NC]
-    
-    # Add your production domain here when you deploy:
-    RewriteCond %{HTTP_REFERER} !^http(s)?://(www\.)?mautranhcnc.com [NC]
-    RewriteCond %{HTTP_REFERER} !^http(s)?://(www\.)?mautuonggiare.com [NC]
-    
-    # Block requests for common image extensions that don't match the referers above
-    RewriteRule \.(jpg|jpeg|png|gif|webp)$ - [F,NC,L]
-</IfModule>
+RewriteEngine on
+# Allow empty referer (direct access)
+RewriteCond %{HTTP_REFERER} !^$
+# Allow our main domain
+RewriteCond %{HTTP_REFERER} !^http(s)?://(www\.)?mautranhcnc\.com [NC]
+# Allow localhost and common development domains
+RewriteCond %{HTTP_REFERER} !^http(s)?://(www\.)?localhost [NC]
+RewriteCond %{HTTP_REFERER} !^http(s)?://127\.0\.0\.1 [NC]
+# Forbid others
+RewriteRule \.(jpg|jpeg|png|gif)$ - [F]

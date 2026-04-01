@@ -56,15 +56,13 @@ if ($cachedData) {
             <div class="product-card" id="' . $row_fr1["prourl"] . '">
                 <div class="product-img-wrapper">
                     <img src="../home/imgs/' . $row_fr1["prourl"] . '" alt="' . $row_fr1["proname"] . '">
-                </div>
-                <div class="product-actions" style="position: absolute; top: 10px; right: 10px; opacity: 1;">
-                    <button class="btn btn-danger btn-sm btndel" value="' . $row_fr1["prourl"] . '" title="Xóa sản phẩm">
+                    <button class="btn-delete-card btndel" value="' . $row_fr1["prourl"] . '" title="Xóa mẫu">
                         <i class="fa fa-trash"></i>
                     </button>
                 </div>
-                <div class="product-info" style="padding: 15px;">
-                    <h3 style="font-size: 16px; margin-bottom: 5px;">' . htmlspecialchars($row_fr1["proname"]) . '</h3>
-                    <span class="badge badge-secondary">' . htmlspecialchars($row_fr1["protype"]) . '</span>
+                <div class="product-info">
+                    <h3 title="' . htmlspecialchars($row_fr1["proname"]) . '">' . htmlspecialchars($row_fr1["proname"]) . '</h3>
+                    <span class="product-badge">' . htmlspecialchars($row_fr1["protype"]) . '</span>
                 </div>
             </div>';
         }
@@ -142,14 +140,19 @@ if ($cachedData) {
             <p style="font-size: 12px; color: #95a5a6; margin: 0;">Admin Portal</p>
         </div>
         <div class="sidebar-nav">
-            <div class="nav-group-title">
-    <form method="post" action="toggle_cache.php" style="display:inline;margin-right:10px;">
-        <button type="submit" class="btn btn-sm <?= $cacheEnabled ? 'btn-success' : 'btn-danger' ?>">
-            Cache: <?= $cacheEnabled ? 'BẬT' : 'TẮT' ?>
-        </button>
-    </form>
-    Menu Chính
-</div>
+        <div class="cache-switch-container">
+            <div class="switch-label">
+                <span>Trạng thái Cache</span>
+                <i class="fa fa-bolt" style="color: <?= $cacheEnabled ? 'var(--accent-emerald)' : '#64748b' ?>"></i>
+            </div>
+            <form method="post" action="toggle_cache.php" id="cacheForm">
+                <label class="toggle-switch">
+                    <input type="checkbox" onchange="document.getElementById('cacheForm').submit()" <?= $cacheEnabled ? 'checked' : '' ?>>
+                    <span class="slider"><span class="slider-text"></span></span>
+                </label>
+            </form>
+        </div>
+        <div class="nav-group-title">Menu Chính</div>
             <ul>
                 <li><a href="admin.php" class="<?php echo ($search==""?"active":""); ?>"><i class="fa fa-home mr-2"></i> <span>Tổng quan</span></a></li>
                 <li><a href="addproduct"><i class="fa fa-plus-circle mr-2"></i> <span>Thêm sản phẩm</span></a></li>
@@ -181,17 +184,17 @@ if ($cachedData) {
         <!-- Stats -->
         <div class="stats-container">
             <div class="stat-card">
-                <div class="stat-icon"><i class="fa fa-cubes fa-lg"></i></div>
+                <div class="stat-icon"><i class="fa fa-cubes"></i></div>
                 <div>
-                    <div style="font-size: 24px; font-weight: 700;"><?php echo $total_records; ?></div>
-                    <div style="font-size: 13px; color: #95a5a6;">Tổng sản phẩm</div>
+                    <div class="stat-count"><?php echo $total_records; ?></div>
+                    <div class="stat-title">Sản phẩm</div>
                 </div>
             </div>
             <div class="stat-card">
-                <div class="stat-icon"><i class="fa fa-tags fa-lg"></i></div>
+                <div class="stat-icon" style="background: linear-gradient(135deg, var(--accent-emerald), #059669);"><i class="fa fa-tags"></i></div>
                 <div>
-                    <div style="font-size: 24px; font-weight: 700;"><?php echo $total_types; ?></div>
-                    <div style="font-size: 13px; color: #95a5a6;">Danh mục</div>
+                    <div class="stat-count"><?php echo $total_types; ?></div>
+                    <div class="stat-title">Danh mục</div>
                 </div>
             </div>
         </div>
