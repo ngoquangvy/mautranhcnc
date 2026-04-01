@@ -1,275 +1,224 @@
 <?php
-
 session_start();
-
 require_once "../includes/connectdb.php";
-
-
+require_once "../includes/cache.php";
+$cacheEnabled = FileCache::isEnabled();
 
 if (!isset($_SESSION["id"])) {
+    header("location: ../admin");
+    exit;
+}
 
-  header("location: ../admin");
-}
-if (isset($_GET['page'])) {
-  $page = $_GET['page']; // current page number
-} else {
-  $page = 1; // default page number
-}
-$limit = 24; // number of records per page
+// Pagination & Search settings
+$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$limit = 24;
 $offset = ($page - 1) * $limit;
+$search = isset($_GET['search']) ? trim($_GET['search']) : "";
 
-$show_product = "";
+$cacheKey = "admin_index_p" . $page . "_s" . md5($search);
+$cachedData = FileCache::get($cacheKey);
 
-$sql_fr1 = "SELECT * from products order by id DESC LIMIT $limit OFFSET $offset";
+if ($cachedData) {
+    $show_product = $cachedData['show_product'];
+    $pageslist = $cachedData['pageslist'];
+    $show_protype = $cachedData['show_protype'];
+    $total_records = $cachedData['total_records'];
+    $total_types = $cachedData['total_types'];
+} else {
+    $show_product = "";
 
+    // Query products with Search support
+    if ($search != "") {
+        $search_term = "%$search%";
+        $sql_fr1 = "SELECT * FROM products WHERE proname LIKE ? OR protype LIKE ? ORDER BY id DESC LIMIT ? OFFSET ?";
+        $stmt = $link->prepare($sql_fr1);
+        $stmt->bind_param("ssii", $search_term, $search_term, $limit, $offset);
+        $stmt->execute();
+        $result_fr1 = $stmt->get_result();
+        
+        // Total count for search pagination
+        $stmt_count = $link->prepare("SELECT COUNT(*) AS total FROM products WHERE proname LIKE ? OR protype LIKE ?");
+        $stmt_count->bind_param("ss", $search_term, $search_term);
+        $stmt_count->execute();
+        $total_res = $stmt_count->get_result()->fetch_assoc();
+        $total_records = $total_res['total'];
+    } else {
+        $sql_fr1 = "SELECT * FROM products ORDER BY id DESC LIMIT $limit OFFSET $offset";
+        $result_fr1 = $link->query($sql_fr1);
+        
+        $total_res = $link->query("SELECT COUNT(*) AS total FROM products")->fetch_assoc();
+        $total_records = $total_res['total'];
+    }
 
-
-$result_fr1 = $link->query($sql_fr1);
-
-if ($result_fr1 && ($result_fr1->num_rows > 0)) {
-
-  while ($row_fr1 = mysqli_fetch_assoc($result_fr1)) {
-
-    // $rf=$row_fr1["id"];
-
-    // print_r($row_fr1);
-
-    $show_product = $show_product . '<div class="col-sm-3" id="' . $row_fr1["prourl"] . '">
-
-              <div class="imgre">
-
-                <img class="img-fluid" src="../home/imgs/' . $row_fr1["prourl"] . '" alt="">
-
+    if ($result_fr1 && ($result_fr1->num_rows > 0)) {
+        while ($row_fr1 = mysqli_fetch_assoc($result_fr1)) {
+            $show_product .= '
+            <div class="product-card" id="' . $row_fr1["prourl"] . '">
+                <div class="product-img-wrapper">
+                    <img src="../home/imgs/' . $row_fr1["prourl"] . '" alt="' . $row_fr1["proname"] . '">
                 </div>
-
-                <div  class="description">
-
-                  <h5>' . $row_fr1["proname"] . '<button id="' . $row_fr1["prourl"] . 'abc" type="button" class="bg-danger text-white btndel" value="' . $row_fr1["prourl"] . '">DELETE</button></h5>
-
-                  <h7>' . $row_fr1["protype"] . '</h7>
-
-                  <p>' . $row_fr1["description"] . '</p>
-
+                <div class="product-actions" style="position: absolute; top: 10px; right: 10px; opacity: 1;">
+                    <button class="btn btn-danger btn-sm btndel" value="' . $row_fr1["prourl"] . '" title="Xóa sản phẩm">
+                        <i class="fa fa-trash"></i>
+                    </button>
                 </div>
+                <div class="product-info" style="padding: 15px;">
+                    <h3 style="font-size: 16px; margin-bottom: 5px;">' . htmlspecialchars($row_fr1["proname"]) . '</h3>
+                    <span class="badge badge-secondary">' . htmlspecialchars($row_fr1["protype"]) . '</span>
+                </div>
+            </div>';
+        }
+    } else {
+        $show_product = '<div class="col-12 text-center py-5"><h3>Không tìm thấy sản phẩm nào.</h3></div>';
+    }
 
-          </div>';
-  }
-}
+    // Pagination Generation
+    $pages = ($total_records > 0) ? ceil($total_records / $limit) : 1;
+    $nextpage = $page < $pages ? $page + 1 : $pages;
+    $previouspage = $page > 1 ? $page - 1 : 1;
+    $search_query = $search != "" ? "&search=" . urlencode($search) : "";
 
-// pagination begin
-$stmt = $link->prepare("SELECT COUNT(DISTINCT id) AS total FROM products");
-$stmt->execute();
-$result = $stmt->get_result();
-$row = $result->fetch_assoc();
-$total = $row['total']; // total number of records
-// calculate total number of pages for pagination
-$pages = ceil($total / $limit); // total number of pages
-$netxpage = $page < $pages ? $page + 1 : $page;
-$previouspage = $page > 1 ? $page - 1 : $page;
-$pageslist = '<a href="?page=' . $previouspage . '">&laquo;</a>';
-for ($i = 1; $i <= $pages; $i++) {
-  if ($page == $i) {
-    $pageslist = $pageslist . '
-        <a href="#" class="active">' . $i . '</a>
-    ';
-  } else {
-    $pageslist = $pageslist . '
-        <a href="?page=' . $i . '">' . $i . '</a>
-        ';
-  }
-}
-$pageslist = $pageslist . '
-    <a href="?page=' . $netxpage . '">&raquo;</a>
-    ';
-// pagination end
+    $pageslist = '<a href="?page=' . $previouspage . $search_query . '">&laquo;</a>';
+    for ($i = 1; $i <= $pages; $i++) {
+        $active_class = ($page == $i) ? 'class="active"' : '';
+        $pageslist .= '<a href="?page=' . $i . $search_query . '" ' . $active_class . '>' . $i . '</a>';
+    }
+    $pageslist .= '<a href="?page=' . $nextpage . $search_query . '">&raquo;</a>';
 
-$show_protype = "";
+    // Categories for Sidebar
+    $show_protype = "";
+    $sql_types = "SELECT protype, COUNT(*) as count FROM products GROUP BY protype ORDER BY protype ASC";
+    $result_types = $link->query($sql_types);
+    $total_types = 0;
+    if ($result_types) {
+        $total_types = $result_types->num_rows;
+        while ($type_row = $result_types->fetch_assoc()) {
+            $show_protype .= '
+            <li class="sidebar-category-item">
+                <a href="../admin/protype.php?id=' . urlencode($type_row["protype"]) . '">
+                    <span>' . htmlspecialchars($type_row["protype"]) . ' (' . $type_row["count"] . ')</span>
+                </a>
+                <button type="button" class="btn btn-link btn-sm text-danger btndelprotype" value="' . htmlspecialchars($type_row["protype"]) . '" title="Xóa danh mục">
+                    <i class="fa fa-trash"></i>
+                </button>
+            </li>';
+        }
+    }
 
-$sql_fr1 = "SELECT * from products group by protype";
-
-$result_fr1 = $link->query($sql_fr1);
-
-if (
-  $result_fr1 && ($result_fr1->num_rows > 0)
-
-) {
-
-  while ($row_fr1 = mysqli_fetch_assoc($result_fr1)) {
-
-    // $rf=$row_fr1["id"];
-
-    $show_protype = $show_protype . ' 
-
-                <li class="nav-item link-container" style="display:flex;">
-                  <a class="nav-link type text-white" href="../admin/protype.php?id=' . $row_fr1["protype"] . '"  value="' . $row_fr1["protype"] . '" > ' . $row_fr1["protype"] . ' </a><button type="button" class="bg-danger text-white btndelprotype" value="' . $row_fr1["protype"] . '">DELETE</button>
-              </li>';
-  }
+    // Save to cache
+    FileCache::set($cacheKey, [
+        'show_product' => $show_product,
+        'pageslist' => $pageslist,
+        'show_protype' => $show_protype,
+        'total_records' => $total_records,
+        'total_types' => $total_types
+    ], FileCache::ADMIN_TTL);
 }
 
 ?>
 
 <!DOCTYPE html>
-
-<html lang="en">
-
+<html lang="vi">
 <head>
-
-  <meta charset="UTF-8">
-
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <title>Dashboard</title>
-
-  <link rel="shortcut icon" href="imgs/logo/logomt.jpg">
-
-  <script src="../home/js/jquery.js"></script>
-
-  <link href="../home/css/bootstrap.min.css" rel="stylesheet">
-
-  <link href="../home/css/my.css" rel="stylesheet">
-
-  <script src="../home/js/bootstrap.min.js"></script>
-
-  <script src="../home/js/my.js"></script>
-
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản trị Dashboard | Mẫu CNC</title>
+    <link rel="shortcut icon" href="../home/imgs/logo/mt_logo.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link href="../home/css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/admin.css" rel="stylesheet">
+    <script src="../home/js/jquery.js"></script>
+    <script src="../home/js/bootstrap.min.js"></script>
 </head>
-
 <body>
 
-  <body class="bg-light">
-
-    <header class="headerr">
-
-      <nav class="navbar navbar-expand-md navbar-dark bg-dark d-flex" id="navbar">
-
-        <div class="container">
-
-          <a class="navbar-brand" href="#" onclick="location.href='../admin';" class="text-white">Mẫu CNC</a>
-
-          <button class="navbar-toggler " type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
-
-            <span class="navbar-toggler-icon"></span>
-
-          </button>
-
-          <div class="collapse navbar-collapse" id="navbarsExampleDefault">
-
-            <ul class="navbar-nav mr-auto">
-
-              <li class="nav-item active">
-
-                <a class="nav-link" href="#" onclick="location.href='../admin';">Home</a>
-
-              </li>
-
-              <li class="nav-item">
-
-                <a class="nav-link" href="#" onclick="location.href='../admin/changepass.php';">CHANGE PASSWORD</a>
-
-              </li>
-
-              <li class="nav-item">
-
-                <a class="nav-link" href="#" onclick="location.href='../admin/addproduct';">ADD Products</a>
-
-              </li>
-
-
-
-            </ul>
-
-          </div>
-
-          <div class="w-25">
-
-            <input type="text" class="form-control rounded-0 bg-dark ser-input" id="ser-input" placeholder="Search...">
-
-          </div>
-
+    <!-- Sidebar -->
+    <aside class="admin-sidebar">
+        <div class="sidebar-header">
+            <img src="../home/imgs/logo/mt_logo.png" alt="Logo" style="height: 40px; margin-bottom: 10px;">
+            <h2>MẪU CNC</h2>
+            <p style="font-size: 12px; color: #95a5a6; margin: 0;">Admin Portal</p>
         </div>
-
-        <div>
-
-          <a class="nav-link" onclick="location.href='../admin/logout.php';" href="#">Logout</a>
-
-        </div>
-
-      </nav>
-
-      <nav class="navbar-dark bg-dark d-flex" id="navbar">
-
-        <div class="container">
-
-          <a class="navbar-brand" href="#" class="text-white">Loại Mẫu:</a>
-
-          <button class="navbar-toggler " type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
-
-            <span class="navbar-toggler-icon"></span>
-
-          </button>
-
-          <div class="collapse scrollnav navbar-collapse" id="navbarsExampleDefault">
-
+        <div class="sidebar-nav">
+            <div class="nav-group-title">
+    <form method="post" action="toggle_cache.php" style="display:inline;margin-right:10px;">
+        <button type="submit" class="btn btn-sm <?= $cacheEnabled ? 'btn-success' : 'btn-danger' ?>">
+            Cache: <?= $cacheEnabled ? 'BẬT' : 'TẮT' ?>
+        </button>
+    </form>
+    Menu Chính
+</div>
             <ul>
-
-              <?php echo $show_protype ?>
-
+                <li><a href="admin.php" class="<?php echo ($search==""?"active":""); ?>"><i class="fa fa-home mr-2"></i> <span>Tổng quan</span></a></li>
+                <li><a href="addproduct"><i class="fa fa-plus-circle mr-2"></i> <span>Thêm sản phẩm</span></a></li>
+                <li><a href="changepass.php"><i class="fa fa-key mr-2"></i> <span>Đổi mật khẩu</span></a></li>
+                <li><a href="logout.php"><i class="fa fa-sign-out mr-2"></i> <span>Đăng xuất</span></a></li>
             </ul>
 
-          </div>
+            <div class="nav-group-title mt-4">Danh mục sản phẩm</div>
+            <ul class="category-list">
+                <?php echo $show_protype; ?>
+            </ul>
+        </div>
+    </aside>
 
+    <!-- Main Content -->
+    <main class="admin-main">
+        <header class="admin-header">
+            <div>
+                <h1 style="font-weight: 700; font-size: 28px; margin: 0;">Quản lý kho mẫu</h1>
+                <p class="text-muted">Chào mừng trở lại, Quản trị viên</p>
+            </div>
+            
+            <form action="admin.php" method="GET" class="search-wrapper">
+                <i class="fa fa-search"></i>
+                <input type="text" name="search" placeholder="Tìm tên mẫu hoặc loại..." value="<?php echo htmlspecialchars($search); ?>">
+            </form>
+        </header>
+
+        <!-- Stats -->
+        <div class="stats-container">
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fa fa-cubes fa-lg"></i></div>
+                <div>
+                    <div style="font-size: 24px; font-weight: 700;"><?php echo $total_records; ?></div>
+                    <div style="font-size: 13px; color: #95a5a6;">Tổng sản phẩm</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fa fa-tags fa-lg"></i></div>
+                <div>
+                    <div style="font-size: 24px; font-weight: 700;"><?php echo $total_types; ?></div>
+                    <div style="font-size: 13px; color: #95a5a6;">Danh mục</div>
+                </div>
+            </div>
         </div>
 
-      </nav>
-
-    </header>
-
-
-
-
-
-    <!-- end slide -->
-
-    <div class="listcnc">
-
-      <div class="container">
-
-        <div class="row" id="products">
-
-          <!-- <div class="col-sm-3">
-
-                  <div class="imgre">
-
-                    <img class="img-fluid" src="imgs/a (1).jpg" alt="">
-
-                    </div>
-
-                    <div  class="description">
-
-                      <h5>Mẫu 1</h5>
-
-                      <h7>Loại: 3D</h7>
-
-                      <p>Cross-platform PowerShell</p>
-
-                    </div>
-
-              </div> -->
-
-          <?php echo $show_product ?>
-
-
-
+        <!-- Products Grid -->
+        <div class="products-grid" id="products">
+            <?php echo $show_product; ?>
         </div>
 
-      </div>
-      <div class="paginationcenter">
-        <div class="pagination">
-          <?php echo $pageslist ?>
+        <!-- Pagination -->
+        <div class="pagination-wrapper">
+            <div class="custom-pagination">
+                <?php echo $pageslist; ?>
+            </div>
         </div>
-      </div>
-  </body>
+    </main>
 
+    <script src="../home/js/my.js"></script>
+    <style>
+        /* Extra internal styling for sidebar delete button */
+        .category-list li a {
+            display: flex;
+            align-items: center;
+        }
+        .btndelprotype:hover {
+            color: #ff7675 !important;
+        }
+    </style>
+</body>
 </html>

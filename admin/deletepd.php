@@ -11,8 +11,9 @@ if (isset($_SESSION['id'])) {
     $sql = 'DELETE FROM products WHERE  prourl = "' . $id . '" ';
 
     // Delete the image file associated with each record
-    if (file_exists($id)) {
-        unlink($id);
+    $imagePath = "../home/imgs/" . $id;
+    if (file_exists($imagePath)) {
+        unlink($imagePath);
     }
 
     $result = $link->query($sql);

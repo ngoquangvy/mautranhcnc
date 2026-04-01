@@ -1,90 +1,112 @@
 <?php
 require_once "../includes/connectdb.php";
+require_once "../includes/cache.php";
+
 if (isset($_GET['page'])) {
     $page = $_GET['page']; // current page number
 } else {
     $page = 1; // default page number
 }
-$limit = 24; // number of records per page
-$offset = ($page - 1) * $limit;
-$show_product = "";
-$sql_fr1 = "SELECT * from products GROUP BY protype order by id DESC LIMIT $limit OFFSET $offset";
-$result_fr1 = $link->query($sql_fr1);
-if (
-    $result_fr1 && ($result_fr1->num_rows > 0)
-) {
-    while ($row_fr1 = mysqli_fetch_assoc($result_fr1)) {
-        $sql_fr = 'SELECT * from products where protype="' . $row_fr1["protype"] . '" order by id DESC';
-        $result_fr = $link->query($sql_fr);
-        if ($result_fr && ($result_fr->num_rows > 0)) {
-            $row_fr = mysqli_fetch_assoc($result_fr);
-            $show_product = $show_product . '
-              <div class="col-sm-3 col-6 loadlz type" value="' . $row_fr1["protype"] . '">
-              <a  href="../home/protype.php?id=' .  $row_fr1["protype"] . '">
-              <div class="imgre">
-                <img class="img-fluid" src="imgs/' . $row_fr["prourl"] . '" alt="" loading="lazy">
-                </div>
-                <div  class="description">
-                  <h5>' . $row_fr["proname"] . '</h5>
-                  <h7>' . $row_fr["protype"] . '</h7>
-                  <p>' . $row_fr["description"] . '</p>
-                </div>
-                </a>
-          </div>
-          ';
+
+$cacheKey = "home_index_p" . $page;
+$cachedData = FileCache::get($cacheKey);
+
+if ($cachedData) {
+    $show_product = $cachedData['show_product'];
+    $pageslist = $cachedData['pageslist'];
+    $show_protype = $cachedData['show_protype'];
+    $show_protypelist = $cachedData['show_protypelist'];
+} else {
+    $limit = 24; // number of records per page
+    $offset = ($page - 1) * $limit;
+    $show_product = "";
+    $sql_fr1 = "SELECT protype from products GROUP BY protype order by id DESC LIMIT $limit OFFSET $offset";
+    $result_fr1 = $link->query($sql_fr1);
+    if (
+        $result_fr1 && ($result_fr1->num_rows > 0)
+    ) {
+        while ($row_fr1 = mysqli_fetch_assoc($result_fr1)) {
+            $sql_fr = 'SELECT * from products where protype="' . $row_fr1["protype"] . '" order by id DESC';
+            $result_fr = $link->query($sql_fr);
+            if ($result_fr && ($result_fr->num_rows > 0)) {
+                $row_fr = mysqli_fetch_assoc($result_fr);
+                $show_product = $show_product . '
+                  <div class="col-sm-3 col-6 loadlz type" value="' . $row_fr1["protype"] . '">
+                  <a  href="../home/protype.php?id=' .  $row_fr1["protype"] . '">
+                  <div class="imgre">
+                    <img class="img-fluid" src="imgs/' . $row_fr["prourl"] . '" alt="" loading="lazy">
+                    </div>
+                    <div  class="description">
+                      <h5>' . $row_fr["proname"] . '</h5>
+                      <h7>' . $row_fr["protype"] . '</h7>
+                      <p>' . $row_fr["description"] . '</p>
+                    </div>
+                    </a>
+              </div>
+              ';
+            }
         }
     }
-}
 
-// pagination begin
-$stmt = $link->prepare("SELECT COUNT(DISTINCT protype) AS total FROM products");
-$stmt->execute();
-$result = $stmt->get_result();
-$row = $result->fetch_assoc();
-$total = $row['total']; // total number of records
-// calculate total number of pages for pagination
-$pages = ceil($total / $limit); // total number of pages
-$netxpage = $page < $pages ? $page + 1 : $page;
-$previouspage = $page > 1 ? $page - 1 : $page;
-$pageslist = '<a href="?page=' . $previouspage . '">&laquo;</a>';
-for ($i = 1; $i <= $pages; $i++) {
-    if ($page == $i) {
-        $pageslist = $pageslist . '
-        <a href="#" class="active">' . $i . '</a>
-    ';
-    } else {
-        $pageslist = $pageslist . '
-        <a href="?page=' . $i . '">' . $i . '</a>
+    // pagination begin
+    $stmt = $link->prepare("SELECT COUNT(DISTINCT protype) AS total FROM products");
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+    $total = $row['total']; // total number of records
+    // calculate total number of pages for pagination
+    $pages = ceil($total / $limit); // total number of pages
+    $netxpage = $page < $pages ? $page + 1 : $page;
+    $previouspage = $page > 1 ? $page - 1 : $page;
+    $pageslist = '<a href="?page=' . $previouspage . '">&laquo;</a>';
+    for ($i = 1; $i <= $pages; $i++) {
+        if ($page == $i) {
+            $pageslist = $pageslist . '
+            <a href="#" class="active">' . $i . '</a>
         ';
+        } else {
+            $pageslist = $pageslist . '
+            <a href="?page=' . $i . '">' . $i . '</a>
+            ';
+        }
     }
-}
-$pageslist = $pageslist . '
-    <a href="?page=' . $netxpage . '">&raquo;</a>
-    ';
-// pagination end
+    $pageslist = $pageslist . '
+        <a href="?page=' . $netxpage . '">&raquo;</a>
+        ';
+    // pagination end
 
-$show_protype = "";
-$show_protypelist = "";
-$sql_fr1 = "SELECT * from products group by protype";
-$result_fr1 = $link->query($sql_fr1);
-if (
-    $result_fr1 && ($result_fr1->num_rows > 0)
-) {
-    while ($row_fr1 = mysqli_fetch_assoc($result_fr1)) {
-        // $rf=$row_fr1["id"];
-        $show_protype = $show_protype . ' 
-               
-                <a " href="../home/protype.php?id=' .  $row_fr1["protype"] . '">
-                ' .  $row_fr1["protype"] . '
-                  </a>
-              ';
-         $show_protypelist = $show_protypelist . ' <li>
-                <a " href="../home/protype.php?id=' .  $row_fr1["protype"] . '">
-                ' .  $row_fr1["protype"] . '
-                  </a>
-              </li>';
+    $show_protype = "";
+    $show_protypelist = "";
+    $sql_fr1 = "SELECT protype from products group by protype";
+    $result_fr1 = $link->query($sql_fr1);
+    if (
+        $result_fr1 && ($result_fr1->num_rows > 0)
+    ) {
+        while ($row_fr1 = mysqli_fetch_assoc($result_fr1)) {
+            // $rf=$row_fr1["id"];
+            $show_protype = $show_protype . ' 
+                   
+                    <a " href="../home/protype.php?id=' .  $row_fr1["protype"] . '">
+                    ' .  $row_fr1["protype"] . '
+                      </a>
+                  ';
+             $show_protypelist = $show_protypelist . ' <li>
+                    <a " href="../home/protype.php?id=' .  $row_fr1["protype"] . '">
+                    ' .  $row_fr1["protype"] . '
+                      </a>
+                  </li>';
+        }
     }
+
+    // Save to cache
+    FileCache::set($cacheKey, [
+        'show_product' => $show_product,
+        'pageslist' => $pageslist,
+        'show_protype' => $show_protype,
+        'show_protypelist' => $show_protypelist
+    ], FileCache::HOME_TTL);
 }
+
 
 ?>
 <!DOCTYPE html>
@@ -94,7 +116,7 @@ if (
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mẫu CNC</title>
-    <link rel="shortcut icon" href="imgs/logo/logomt.jpg">
+    <link rel="shortcut icon" href="imgs/logo/mt_logo.png">
     <script src="js/jquery.js"></script>
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <script src="js/bootstrap.min.js"></script>
@@ -501,7 +523,7 @@ if (
     <header class="headerr">
         <nav class="navbar navbar-expand-md navbar-dark bg-dark d-flex" id="navbar">
             <div class="container">
-                <a class="navbar-brand" href="../home" class="text-white">Mẫu CNC</a>
+                <a class="navbar-brand" href="../home" class="text-white"><img src="imgs/logo/mt_logo.png" alt="Logo" style="height: 40px; margin-right: 10px;"> Mẫu CNC</a>
                 <button class="navbar-toggler " id="btnhide" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
@@ -594,7 +616,8 @@ if (
                 <div class="row">
                     <!--Grid column-->
                     <div class="col-lg-6 col-md-12 mb-4 mb-md-0">
-                        <h5 class="text-uppercase">Mẫu CNC</h5>
+                        <img class="logo-footer mb-4" src="imgs/logo/mt_logo.png" alt="MauTranhCNC Logo" style="max-width: 150px;">
+                        <h5 class="text-uppercase">Mẫu Tranh CNC</h5>
                         <p>Quản Lý: Thiện Bùi </p>
                         <p>Phone: 0338790560 </p>
                         <p>FaceBook: facebook.com/thien.bui.12327608 </p>
