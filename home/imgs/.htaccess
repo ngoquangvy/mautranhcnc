@@ -1,0 +1,27 @@
+# ─────────────────────────────────────────────────────────────
+# MT CNC UPLOAD SECURITY SHIELD
+# ─────────────────────────────────────────────────────────────
+
+# 1. BẢO MẬT TUYỆT ĐỐI: CHẶN THỰC THI PHP TRONG THƯ MỤC ẢNH
+# Tại sao? Đây là đòn phản công chống lại Hacker nếu họ tìm cách tải 
+# tệp mã độc (như shell.php) lên thư mục ảnh này.
+# Ngay cả khi tải lên thành công, Server sẽ từ chối thực thi tệp đó.
+<FilesMatch "\.(php|php4|php5|php7|phtml)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# 2. CHỐNG HOTLINKING (Ngăn trang khác dùng trộm băng thông ảnh)
+RewriteEngine on
+# Allow empty referer (direct access)
+RewriteCond %{HTTP_REFERER} !^$
+# Allow our main domain
+RewriteCond %{HTTP_REFERER} !^http(s)?://(www\.)?mautranhcnc\.com [NC]
+# Allow localhost and common development domains
+RewriteCond %{HTTP_REFERER} !^http(s)?://(www\.)?localhost [NC]
+RewriteCond %{HTTP_REFERER} !^http(s)?://127\.0\.0\.1 [NC]
+RewriteCond %{HTTP_REFERER} !^http(s)?://192\.168\. [NC]
+RewriteCond %{HTTP_REFERER} !^http(s)?://10\. [NC]
+RewriteCond %{HTTP_REFERER} !^http(s)?://(www\.)?mautranhcnc\.com [NC]
+# Forbid others
+RewriteRule \.(jpg|jpeg|png|gif)$ - [F]

@@ -42,6 +42,7 @@ tmp/
 
 # Media Uploads (Quan trọng: Không upload ảnh sản phẩm thật lên Git)
 home/imgs/*
+!home/imgs/.htaccess
 !home/imgs/logo/
 !home/imgs/logo/**
 !home/imgs/logo_watermark.png
