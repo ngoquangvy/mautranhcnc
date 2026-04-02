@@ -3,6 +3,17 @@ require_once "../includes/connectdb.php";
 
 $success_message = "";
 $zalo_link = "";
+$zalo_text = ""; // Khởi tạo biến để tránh lỗi Warning khi bị chặn Bot
+
+// -------------------------------------------------------------
+// BẢO MẬT: TIME TRAP (Bẫy thời gian)
+// -------------------------------------------------------------
+// Mục tiêu: Ghi lại thời điểm người dùng bắt đầu mở trang thanh toán. 
+// Bot thường gửi đơn ngay lập tức, con người sẽ mất ít nhất vài giây để điền.
+if ($_SERVER['REQUEST_METHOD'] == 'GET') {
+    $_SESSION['cart_load_time'] = time();
+}
+// -------------------------------------------------------------
 
 // Xử lý Gửi Form Backend
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['customer_name'])) {
@@ -16,15 +27,57 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['customer_name'])) {
     $recaptcha_success = Security\verify_recaptcha($_POST['g-recaptcha-response'] ?? '');
     $csrf_success = Security\verify_csrf_token($_POST['csrf_token'] ?? '');
 
-    if (!$csrf_success) {
+    // -------------------------------------------------------------
+    // [CODE MỚI - BẢO MẬT MỀM]
+    // -------------------------------------------------------------
+    $is_bot = false;
+    $bot_reason = "";
+
+    // 1. Kiểm tra Honeypot (Bot thường tự điền các ô ẩn)
+    if (!empty($_POST['email_confirm_api'])) {
+        $is_bot = true;
+        $bot_reason = "Honeypot detected";
+    }
+
+    // 2. Kiểm tra Time Trap (Bot nạp form quá nhanh < 3 giây)
+    $load_time_session = $_SESSION['cart_load_time'] ?? 0;
+    $load_time_post = (int)($_POST['form_token_time'] ?? 0);
+    
+    // Ưu tiên lấy thời gian lớn nhất (Gần nhất - Nghiêm ngặt nhất)
+    $load_time = ($load_time_session > 0) ? max($load_time_session, $load_time_post) : $load_time_post;
+    
+    $submit_duration = time() - $load_time;
+    if ($submit_duration < 3) {
+        $is_bot = true;
+        $bot_reason = "Time trap ($submit_duration s)";
+    }
+
+    // 3. Rate Limiting (Giới hạn tối thiểu giữa 2 lần nạp đơn để tránh DoS)
+    $last_submit = $_SESSION['last_submit_time'] ?? 0;
+    
+    if (time() - $last_submit < 30) {
+        $success_message = "<span style='color:orange;'>Bạn gửi đơn hơi nhanh. Vui lòng đợi 30 giây để tiếp tục nhé!</span>";
+    } elseif (!$csrf_success) {
         $success_message = "<span style='color:red;'>Lỗ: CSRF Token không hợp lệ. Vui lòng thử lại.</span>";
     } elseif (Security\is_recaptcha_enabled() && !$recaptcha_success) {
         $success_message = "<span style='color:red;'>Lỗi: Vui lòng xác thực bạn không phải là robot!</span>";
     } else {
-        // LỌC DỮ LIỆU ĐẦU VÀO TỪ CLIENT
+        // [LUỒNG XỬ LÝ CHÍNH - LUÔN LƯU ĐƠN]
+        $_SESSION['last_submit_time'] = time();
+        unset($_SESSION['cart_load_time']); 
+        
         $name = Security\h(trim($_POST['customer_name']));
         $phone = Security\h(trim($_POST['customer_phone']));
         $note = Security\h(trim($_POST['order_note']));
+
+        // THỰC HIỆN "SILENT FLAGGING" - Đánh dấu nhưng không chặn
+        if ($is_bot) {
+            $note = "[Hệ thống: Nghi ngờ Bot ($bot_reason)] " . ($note ?? '');
+        }
+
+        // DEBUG: Ghi lại log để kiểm tra tại sao không gắn cờ (Chỉ dùng khi test)
+        // error_log("DEBUG MTCNC: is_bot=" . ($is_bot?'TRUE':'FALSE') . " | duration=$submit_duration | reason=$bot_reason");
+
         $cart_data = isset($_POST['cart_data']) ? json_decode($_POST['cart_data'], true) : [];
 
         /*
@@ -87,7 +140,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['customer_name'])) {
                     $tg_msg .= "📞 <b>Số điện thoại:</b> $phone\n";
                     $tg_msg .= "📦 <b>Chi tiết:</b>\n" . $zalo_text;
                     
-                    Security\notify_admin($tg_msg);
+                    // -------------------------------------------------------------
+                    // CHIẾN LƯỢC BẢO MẬT MỀM (SILENT NOTIFICATION)
+                    // -------------------------------------------------------------
+                    // Chỉ gửi thông báo nếu KHÔNG bị nghi ngờ là Bot.
+                    // Điều này giúp Inbox của bạn luôn sạch sẽ, đơn spam vẫn lưu để xem sau.
+                    if (!$is_bot) {
+                         Security\notify_admin($tg_msg);
+                    } else {
+                        /* [DÀNH CHO LẬP TRÌNH VIÊN]
+                         * Mã cũ: Security\notify_admin($tg_msg); 
+                         * Đã đóng lại để bảo vệ Admin khỏi Spam Bot.
+                         */
+                    }
+                    // -------------------------------------------------------------
                 }
                 $stmt->close();
             }
@@ -325,6 +391,13 @@ if ($res_types && $res_types->num_rows > 0) {
             .success-box h2 { font-size: 1.6rem; }
             .mobile-stack-btn { width: 100% !important; margin-top: 10px !important; padding: 12px !important; }
         }
+        /* ─────────────────────────────────────────────────────────────
+           BẢO MẬT: HONEYPOT CSS (Trường bẫy Bot)
+           ───────────────────────────────────────────────────────────── */
+        .hp-field {
+            display: none !important;
+            visibility: hidden !important;
+        }
     </style>
 </head>
 
@@ -367,7 +440,7 @@ if ($res_types && $res_types->num_rows > 0) {
                         <p class="font-weight-bold mb-2 text-dark"><i class="fa fa-file-text-o mr-2"></i>Nội dung đơn hàng
                             (Vui lòng Copy dòng dưới gửi qua Zalo):</p>
                         <textarea id="zaloMessageText" class="form-control mb-3" rows="6" readonly
-                            style="background: white; cursor: text;"><?php echo htmlspecialchars($zalo_text, ENT_QUOTES); ?></textarea>
+                            style="background: white; cursor: text;"><?php echo htmlspecialchars($zalo_text ?? '', ENT_QUOTES); ?></textarea>
 
                         <div class="d-flex flex-column flex-md-row justify-content-center align-items-center" style="gap: 15px;">
                             <button type="button" class="btn btn-outline-secondary mobile-stack-btn" onclick="copyZaloText()"
@@ -417,6 +490,22 @@ if ($res_types && $res_types->num_rows > 0) {
                         <input type="hidden" name="cart_data" id="cart_data_input">
                         <!-- CSRF TOKEN (Bảo vệ khỏi việc gửi form giả mạo từ trang khác) -->
                         <input type="hidden" name="csrf_token" value="<?php echo Security\generate_csrf_token(); ?>">
+
+                        <!-- ─────────────────────────────────────────────────────────────
+                             BẢO MẬT: HONEYPOT INPUT
+                             ─────────────────────────────────────────────────────────────
+                             Nếu Bot tự động điền vào ô này, hệ thống sẽ coi là Spam.
+                             Người dùng thật sẽ không thấy ô này do CSS .hp-field phía trên. 
+                        -->
+                        <div class="hp-field">
+                            <input type="text" name="email_confirm_api" value="" tabindex="-1" autocomplete="off">
+                        </div>
+
+                        <!-- ─────────────────────────────────────────────────────────────
+                             BẢO MẬT: FORM TOKEN TIME (Bổ trợ Time Trap)
+                             ───────────────────────────────────────────────────────────── 
+                        -->
+                        <input type="hidden" name="form_token_time" value="<?php echo time(); ?>">
 
                         <div class="row">
                             <div class="col-md-6 mb-3">

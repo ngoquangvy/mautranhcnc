@@ -21,6 +21,16 @@ $limit = 24;
 $offset = ($page - 1) * $limit;
 $search = isset($_GET['search']) ? trim($_GET['search']) : "";
 
+// -------------------------------------------------------------
+// [CODE MỚI - GIÁM SÁT VẬN HÀNH THÔNG BÁO]
+// -------------------------------------------------------------
+$notif_error_file = "logs/notif_error.log";
+$show_notif_warning = false;
+if (file_exists($notif_error_file) && filesize($notif_error_file) > 0) {
+    $show_notif_warning = true;
+}
+// -------------------------------------------------------------
+
 $cacheKey = "admin_index_p" . $page . "_s" . md5($search);
 $cachedData = FileCache::get($cacheKey);
 
@@ -199,6 +209,24 @@ if ($cachedData) {
                     value="<?php echo htmlspecialchars($search); ?>">
             </form>
         </header>
+
+        <!-- ─────────────────────────────────────────────────────────────
+             CẢNH BÁO LỖI GỬI MAIL (CHỈ HIỂN THỊ KHI CÓ LỖI TRONG LOG)
+             ───────────────────────────────────────────────────────────── -->
+        <?php if ($show_notif_warning): ?>
+            <div class="alert alert-danger mb-4 shadow-sm" style="border-radius: 12px; border-left: 5px solid #d63031; background: #fffcfc;">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <i class="fa fa-exclamation-triangle mr-2 text-danger"></i> 
+                        <strong class="text-danger">Cảnh báo vận hành:</strong> Có lỗi phát sinh khi gửi thông báo Email gần đây! 
+                    </div>
+                    <a href="logs/notif_error.log" target="_blank" class="btn btn-sm btn-outline-danger" style="border-radius: 8px;">
+                        <i class="fa fa-search mr-1"></i> Kiểm tra lỗi
+                    </a>
+                </div>
+            </div>
+        <?php endif; ?>
+        <!-- ───────────────────────────────────────────────────────────── -->
 
         <!-- Stats -->
         <div class="stats-container">

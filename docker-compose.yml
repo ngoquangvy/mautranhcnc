@@ -26,7 +26,7 @@ services:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: ngovy_maucnc
     volumes:
-      - ./10_123_0_211.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./database/10_123_0_211_patched.sql:/docker-entrypoint-initdb.d/init.sql
       - db-data:/var/lib/mysql
     ports:
       - "3306:3306"

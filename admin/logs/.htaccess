@@ -1,0 +1,15 @@
+# ─────────────────────────────────────────────────────────────
+# BẢO VỆ THƯ MỤC LOG (SECURITY HARDENING)
+# ─────────────────────────────────────────────────────────────
+# Ngăn chặn hoàn toàn việc truy cập từ trình duyệt vào các tệp nhật ký.
+
+# Cho Apache 2.4+
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+
+# Cho Apache 2.2 (Fallback)
+<IfModule !mod_authz_core.c>
+    Order deny,allow
+    Deny from all
+</IfModule>

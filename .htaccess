@@ -2,20 +2,29 @@
 # MT CNC SECURITY SHIELD - ANTI-GRAVITY GUARD
 # ─────────────────────────────────────────────────────────────
 
-# 1. Ngăn chặn việc liệt kê thư mục (Browsing folders)
+# 1. NGĂN CHẶN DUYỆT THƯ MỤC (DIRECTORY INDEXING)
 Options -Indexes
 
-# 2. BẢO MẬT: Chặn truy cập tuyệt đối vào các tệp ẩn (Dotfiles)
-# Bao gồm: .env, .git, .gitignore, .env.example, v.v.
-<FilesMatch "^\.">
-    Order allow,deny
-    Deny from all
+# 2. CHẶN TRUY CẬP TRỰC TIẾP VÀO CÁC TỆP NHẬY CẢM (DOTFILES, LOGS, DB)
+# Ngăn chặn việc tải về các tệp cấu hình, nhật ký và bản sao lưu.
+<FilesMatch "^\.env|^\.sql|^\.git|.*\.log$|.*\.bak$|.*\.conf$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order deny,allow
+        Deny from all
+    </IfModule>
 </FilesMatch>
 
-# 3. BẢO MẬT: Chặn truy cập các tệp nhạy cảm (Configs, Backups, Logs)
-# Ngăn chặn việc tải về các bản dump Database .sql ngoài ý muốn.
-<FilesMatch "(^#.*#|\.(bak|conf|dist|fla|in[ci]|log|psd|sh|sql|sw[op]|env|example))$">
-    Order allow,deny
-    Deny from all
+# 3. BẢO VỆ PHỤ TRỢ (EXTENSION PROTECTION)
+# Chặn các kiểu file mã nguồn hoặc tệp tạm khác
+<FilesMatch "\.(bak|config|dist|fla|inc|ini|log|psd|sh|sql|swp|env|example)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order deny,allow
+        Deny from all
+    </IfModule>
 </FilesMatch>
-

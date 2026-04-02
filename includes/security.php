@@ -78,42 +78,65 @@ function is_recaptcha_enabled()
  */
 function notify_admin($message)
 {
+    /* 
+     * ─────────────────────────────────────────────────────────────────────────
+     * LƯU Ý QUAN TRỌNG VỀ HOSTING MIỄN PHÍ (FREEHOSTIA / BYETHOST / ...)
+     * ─────────────────────────────────────────────────────────────────────────
+     * Các Host free thường chặn yêu cầu gửi ra ngoài (Outbound Requests) 
+     * tới các dịch vụ như Telegram hoặc Google reCAPTCHA.
+     * Do đó, chúng ta chuyển sang dùng hàm mail() nội bộ của Server.
+     */
+
+    // 1. [VÔ HIỆU HÓA TELEGRAM] - Tạm đóng do Host chặn kết nối ngoại vi.
+    /*
     $token = defined('TELEGRAM_BOT_TOKEN') ? TELEGRAM_BOT_TOKEN : '';
     $chat_id = defined('TELEGRAM_CHAT_ID') ? TELEGRAM_CHAT_ID : '';
 
-    if (empty($token) || empty($chat_id)) {
-        return false; // Chưa cấu hình thì bỏ qua
+    if (!empty($token) && !empty($chat_id)) {
+        $url = "https://api.telegram.org/bot$token/sendMessage";
+        $data = [
+            'chat_id' => $chat_id,
+            'text' => $message,
+            'parse_mode' => 'HTML'
+        ];
+        // ... (phần code gửi bằng Curl hoặc file_get_contents)
+    }
+    */
+
+    // 2. [TRIỂN KHAI EMAIL] - Sử dụng hàm mail() chuẩn PHP.
+    $to = defined('ADMIN_EMAIL') ? ADMIN_EMAIL : '';
+    $from = defined('SENDER_EMAIL') ? SENDER_EMAIL : '';
+
+    if (empty($to) || empty($from)) {
+        return false; // Chưa cấu hình Email thì bỏ qua
     }
 
-    $url = "https://api.telegram.org/bot$token/sendMessage";
-    $data = [
-        'chat_id' => $chat_id,
-        'text' => $message,
-        'parse_mode' => 'HTML'
-    ];
+    $subject = "=?UTF-8?B?".base64_encode("Thông báo Đơn hàng mới: " . date("H:i"))."?=";
+    
+    // Header chuẩn để tránh rơi vào Spam và hỗ trợ Tiếng Việt
+    $headers = "From: Mẫu Tranh CNC <" . $from . ">\r\n";
+    $headers .= "Reply-To: " . $from . "\r\n";
+    $headers .= "MIME-Version: 1.0\r\n";
+    $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+    $headers .= "X-Mailer: PHP/" . phpversion();
 
-    // Gửi request bằng file_get_contents với timeout ngắn
-    $options = [
-        'http' => [
-            'method' => 'POST',
-            'header' => "Content-type: application/x-www-form-urlencoded\r\n",
-            'content' => http_build_query($data),
-            'timeout' => 10 // 10 giây
-        ],
-        // ─────────────────────────────────────────────────────────────
-        // BẢO MẬT SSL (Chống tấn công Man-in-the-Middle)
-        // ─────────────────────────────────────────────────────────────
-        // Mặc định luôn bật xác thực để bảo vệ mã Token bí mật.
-        'ssl' => [
-            'verify_peer' => getenv('SSL_VERIFY') !== 'false',
-            'verify_peer_name' => getenv('SSL_VERIFY') !== 'false'
-        ]
-    ];
+    // Gửi thư (Dùng @ để ẩn lỗi của server nếu hàm mail bị tắt)
+    $sent = @mail($to, $subject, $message, $headers);
 
-    $context = stream_context_create($options);
-    @file_get_contents($url, false, $context);
-    // Dùng @ để ẩn lỗi nếu server không có mạng, tránh làm hỏng luồng đặt hàng.
-    return true;
+    // -------------------------------------------------------------
+    // [CODE MỚI - LOG LỖI GỬI MAIL]
+    // -------------------------------------------------------------
+    // Mục tiêu: Nếu gửi mail thất bại, ghi lại vào log để Admin biết.
+    if (!$sent) {
+        $log_file = __DIR__ . '/../admin/logs/notif_error.log';
+        $timestamp = date("Y-m-d H:i:s");
+        $log_msg = "[$timestamp] LỖI: Không thể gửi mail tới $to. Vui lòng kiểm tra lại cấu hình Hosting/Email.\n";
+        // Ghi vào file log (Dùng FILE_APPEND để không xóa các lỗi cũ)
+        @file_put_contents($log_file, $log_msg, FILE_APPEND);
+    }
+    // -------------------------------------------------------------
+
+    return $sent;
 }
 
 /**
@@ -145,24 +168,22 @@ function verify_recaptcha($response)
         'remoteip' => $_SERVER['REMOTE_ADDR']
     ];
 
-    $options = [
-        'http' => [
-            'method' => 'POST',
-            'header' => "Content-type: application/x-www-form-urlencoded\r\n",
-            'content' => http_build_query($data),
-            'timeout' => 5
-        ],
-        'ssl' => [
-            'verify_peer' => getenv('SSL_VERIFY') !== 'false',
-            'verify_peer_name' => getenv('SSL_VERIFY') !== 'false'
-        ]
-    ];
+    $ch = curl_init($verify_url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
+    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, getenv('SSL_VERIFY') !== 'false');
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, getenv('SSL_VERIFY') !== 'false' ? 2 : 0);
 
-    $context = stream_context_create($options);
-    $verify_response = @file_get_contents($verify_url, false, $context);
+    $verify_response = curl_exec($ch);
 
-    if ($verify_response === false)
+    if ($verify_response === false) {
+        curl_close($ch);
         return false;
+    }
+
+    curl_close($ch);
 
     $result = json_decode($verify_response, true);
     return (isset($result['success']) && $result['success'] == true);
@@ -205,6 +226,17 @@ function secure_session_start()
         ]);
 
         session_start();
+        
+        // -------------------------------------------------------------
+        // [CODE MỚI - QUẢN LÝ PHIÊN BẢN SESSION]
+        // -------------------------------------------------------------
+        // Mục tiêu: Nếu bạn đổi SESSION_VERSION trong .env, toàn bộ người dùng 
+        // sẽ được reset session để tránh xung đột hoặc lỗi bảo mật cũ.
+        if (!isset($_SESSION['SESSION_VERSION']) || $_SESSION['SESSION_VERSION'] !== SESSION_VERSION) {
+            session_unset(); // Xóa sạch dữ liệu cũ
+            $_SESSION['SESSION_VERSION'] = SESSION_VERSION; // Ghi nhận phiên bản mới
+        }
+        // -------------------------------------------------------------
 
         // -------------------------------------------------------------
         // GIẢI THÍCH BẢO MẬT: GLOBAL SECURITY HEADERS
@@ -227,8 +259,10 @@ function secure_session_start()
             "script-src 'self' 'unsafe-inline' https://openseadragon.github.io https://maxcdn.bootstrapcdn.com https://fonts.googleapis.com https://www.google.com https://www.gstatic.com; " .
             "style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com https://fonts.googleapis.com https://www.google.com; " .
             "font-src 'self' https://maxcdn.bootstrapcdn.com https://fonts.gstatic.com; " .
-            "img-src 'self' data: https://openseadragon.github.io https://www.gstatic.com; " .
-            "frame-src 'self' https://www.google.com;");
+            "img-src 'self' data: https://openseadragon.github.io https://www.google.com https://www.gstatic.com; " .
+            "frame-src 'self' https://www.google.com; " .
+            "connect-src 'self' https://www.google.com https://www.gstatic.com;");
+
         // -------------------------------------------------------------
     }
 }
