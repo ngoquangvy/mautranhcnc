@@ -1,5 +1,4 @@
 <?php
-session_start();
 // if (isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true) {
 //     header("location: ../home/");
 //     // exit;
@@ -8,96 +7,123 @@ session_start();
 require_once "../includes/connectdb.php";
 
 
-//... The Captcha is valid you can continue with the rest of your code
-//... Add code to filter access using $response . score
-
-
+// -------------------------------------------------------------
+// GIẢI THÍCH BẢO MẬT: ENV-BASED CONFIG
+// -------------------------------------------------------------
+// Khóa SECRET hiện đã được nạp từ biến môi trường qua connectdb.php. 
+// Việc này giúp bảo vệ hệ thống tuyệt đối khi bạn chia sẻ mã nguồn 
+// cho người khác hoặc đẩy lên Git.
+$recaptcha_secret = RECAPTCHA_SECRET_KEY;
+// -------------------------------------------------------------
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // 1. XÁC THỰC RECAPTCHA (CHỐNG BOT CẤP ĐỘ CAO)
+    // -------------------------------------------------------------
+    $captcha_response = $_POST['g-recaptcha-response'] ?? '';
+    
+    if (Security\is_recaptcha_enabled() && empty($captcha_response)) {
+        die("BÁO LỖI: Bạn chưa tích vào ô reCAPTCHA (Tôi không phải là người máy)!");
+    }
+
+    if (Security\is_recaptcha_enabled()) {
+        // -------------------------------------------------------------
+        // GIẢI THÍCH BẢO MẬT: SỬ DỤNG HÀM XÁC THỰC TẬP TRUNG
+        // -------------------------------------------------------------
+        // Thay vì tự viết mã xác thực (dễ sai sót SSL), chúng ta gọi 
+        // hàm verify_recaptcha() từ Security library đã được bật xác thực SSL.
+        if (!Security\verify_recaptcha($captcha_response)) {
+            die("BÁO LỖI: reCAPTCHA thất bại! Vui lòng thử lại hoặc liên hệ kỹ thuật.");
+        }
+    }
+    // -------------------------------------------------------------
+
+    // 2. KIỂM TRA CSRF TOKEN
+    if (!isset($_POST['csrf_token']) || !Security\verify_csrf_token($_POST['csrf_token'])) {
+        die("Lỗi bảo mật: CSRF Token không hợp lệ!");
+    }
+    // -------------------------------------------------------------
+
     $username = $_POST['login'];
     $password = $_POST['password'];
-  //   $options = [
-  //     'cost' => 22,
-  // ];
-  
-  // var_dump($hashed_password);
-  // print_r($hashed_password);
-      $sql_email = 'SELECT *
-      FROM admin
-      WHERE username = "' . $username . '"';
 
-      $result = $link->query($sql_email);
-      // echo mysqli_num_rows($result);
-      if (mysqli_num_rows($result) >0) {
-          $row = mysqli_fetch_assoc($result);
-          $time_stamp=$row["time_stamp"];
-          $t=$row["times"];
-           $date = date('Y-m-d');
-          $dateTimestamp1 = strtotime($date);
-          $dateTimestamp2 = strtotime($time_stamp);
-          if ($dateTimestamp1 == $dateTimestamp2) {
+    /* 
+    // MÃ NGUỒN CŨ (DỄ BỊ TẤN CÔNG SQL INJECTION)
+    $sql_email = 'SELECT * FROM admin WHERE username = "' . $username . '"';
+    $result = $link->query($sql_email);
+    */
+
+    // MÃ NGUỒN MỚI: SỬ DỤNG PREPARED STATEMENTS
+    $stmt = $link->prepare("SELECT username, password, times, time_stamp FROM admin WHERE username = ?");
+    $stmt->bind_param("s", $username);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        $time_stamp = $row["time_stamp"];
+        $t = $row["times"];
+        $date = date('Y-m-d');
+        
+        if ($date == $time_stamp) {
+            /* 
+            // CŨ
             $sql='UPDATE admin SET times = times + 1 WHERE username = "'. $username .'"';
             $result1 = $link->query($sql);
-          }else{
-            $t=1;
+            */
+            // MỚI
+            $stmt_up = $link->prepare("UPDATE admin SET times = times + 1 WHERE username = ?");
+            $stmt_up->bind_param("s", $username);
+            $stmt_up->execute();
+        } else {
+            $t = 1;
+            /*
+            // CŨ
             $sql='UPDATE admin SET times = 0 WHERE username = "'. $username .'"';
             $result1 = $link->query($sql);
-          }
+            */
+            // MỚI
+            $stmt_reset = $link->prepare("UPDATE admin SET times = 0 WHERE username = ?");
+            $stmt_reset->bind_param("s", $username);
+            $stmt_reset->execute();
+        }
 
-    if($t>4){
-    echo '<script language="javascript">';
-    echo 'alert("Try again after 24 hours")';
-    echo '</script>';
-    echo '<script language="javascript">';
-    echo 'window.location.href = "../admin/"';
-    echo '</script>';
-    }else{
-      
-          $sql_email = 'SELECT *
-    FROM admin
-    WHERE username = "' . $username . '"';
+        if ($t > 4) {
+            echo '<script language="javascript">alert("Try again after 24 hours"); window.location.href = "../admin/";</script>';
+            exit;
+        } else {
+            if (password_verify($password, $row["password"])) {
+                // CHỐNG SESSION FIXATION
+                session_regenerate_id(true);
 
-    $result = $link->query($sql_email);
-    // echo mysqli_num_rows($result);
-    if (mysqli_num_rows($result) >0) {
-        $row = mysqli_fetch_assoc($result);
-          if(password_verify($password ,$row["password"])) {
-            // $_SESSION["loggedin"] = true;
-            $sql='UPDATE admin SET times = 0 WHERE username = "'. $username .'"';
-            $result1 = $link->query($sql);
-            $_SESSION["id"] = $row["username"];
-            echo '<script language="javascript">';
-            // echo 'alert("Login successful.")';
-            echo 'alert("Login successful\nWelcome back '. $_SESSION["username"].'")';
-            echo '</script>';
-            echo '<script language="javascript">';
-            echo 'window.location.href = "../admin/"';
-            echo '</script>';
-          }
-     else {
-      
-      $sql='UPDATE admin SET time_stamp = now()  WHERE username = "'. $username .'"';
-      $result1 = $link->query($sql);
-        echo '<script language="javascript">';
-        echo 'alert("Email or password is incorrect.\nYou will return Login")';
-        echo '</script>';
-        echo '<script language="javascript">';
-        echo 'window.location.href = "../admin/"';
-        echo '</script>';
+                // RESET LOGIN ATTEMPTS
+                $stmt_clear = $link->prepare("UPDATE admin SET times = 0 WHERE username = ?");
+                $stmt_clear->bind_param("s", $username);
+                $stmt_clear->execute();
+
+                $_SESSION["id"] = $row["username"];
+                
+                echo '<script language="javascript">alert("Login successful\nWelcome back '. htmlspecialchars($username) .'"); window.location.href = "../admin/";</script>';
+                exit;
+            } else {
+                // -------------------------------------------------------------
+                // GIẢI THÍCH BẢO MẬT: SECURITY BACKOFF (ANTI-BRUTE FORCE)
+                // -------------------------------------------------------------
+                // LỖI (VÁ): Đã di chuyển sleep(2) vào khối SAI MẬT KHẨU. 
+                // Bot giờ đây sẽ bị "treo" 2 giây cho mỗi lần đoán sai.
+                sleep(2);
+                echo '<script language="javascript">alert("Email or password is incorrect."); window.location.href = "../admin/";</script>';
+                exit;
+            }
+        }
+    } else {
+        // GIẢI THÍCH BẢO MẬT: TIMING ATTACK PROTECTION
+        // Bắt bot đợi ngay cả khi USERNAME KHÔNG TỒN TẠI để chúng không 
+        // biết được tài khoản này có thật trên hệ thống hay không.
+        sleep(2);
+        echo '<script language="javascript">alert("Email or password is incorrect."); window.location.href = "../admin/";</script>';
+        exit;
     }
-  }
-  else {
-    echo '<script language="javascript">';
-    echo 'alert("Email or password is incorrect.\nYou will return Login")';
-    echo '</script>';
-    echo '<script language="javascript">';
-    echo 'window.location.href = "../admin/"';
-    echo '</script>';
-  }
-
-      //end captcha
-    
-}}}
+}
 ?>
 
 <!DOCTYPE html>
@@ -130,9 +156,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     <!-- Login Form -->
     <form method="POST" id="form_id" action="login.php">
+      <input type="hidden" name="csrf_token" value="<?php echo Security\generate_csrf_token(); ?>">
       <input type="text" id="login" class="fadeIn second" name="login" placeholder="username">
       <input type="password" id="password" class="fadeIn third" name="password" placeholder="password">
-          <div>
+      
+      <!-- GOOGLE RECAPTCHA WIDGET (SITE KEY FROM ENV) -->
+      <?php if (Security\is_recaptcha_enabled()): ?>
+      <center>
+        <div class="g-recaptcha fadeIn" data-sitekey="<?php echo RECAPTCHA_SITE_KEY; ?>"></div>
+      </center>
+      <?php endif; ?>
+      
+      <div>
           <button type="submit"  id="continue" class="fadeIn fourth btn btn-primary" value="Log In">Login</button>
         </div>
       

@@ -1,24 +1,87 @@
 <?php
-/* Database credentials. Portability: Try environment variables (Docker), fallback to defaults (XAMPP). */
+/* 
+ * 1. TỰ ĐỘNG NẠP CẤU HÌNH .ENV (DÙNG CHO SERVER TRUYỀN THỐNG / XAMPP)
+ * ────────────────────────────────────────────────────────────────
+ * Đoạn mã này giúp bạn cấu hình DB mà không cần sửa code. 
+ * Chỉ cần tạo file .env ở thư mục gốc của project.
+ */
+$envPath = __DIR__ . '/../.env';
+if (file_exists($envPath)) {
+    $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if (empty($line) || strpos($line, '#') === 0) continue;
+        
+        $parts = explode('=', $line, 2);
+        if (count($parts) === 2) {
+            $name = trim($parts[0]);
+            $value = trim($parts[1]);
+            
+            // Xóa dấu ngoặc kép nếu có bao quanh giá trị
+            $value = trim($value, '"\'');
+
+            putenv("$name=$value");
+            $_ENV[$name] = $value;
+            $_SERVER[$name] = $value;
+        }
+    }
+}
+
+/* 2. CẤU HÌNH MÔI TRƯỜNG: local | production */
+if (!defined('APP_ENV')) {
+    define('APP_ENV', getenv('APP_ENV') ?: 'production');
+}
+
+/* 3. BẢO MẬT: TẮT HIỂN THỊ LỖ TRÊN PRODUCTION */
+if (APP_ENV === 'production') {
+    error_reporting(0);
+    ini_set('display_errors', 0);
+} else {
+    error_reporting(E_ALL);
+    ini_set('display_errors', 1);
+}
+
+/* 4. DB Credentials: Ưu tiên lấy từ biến môi trường (Docker/.env) */
 define('DB_SERVER', getenv('DB_HOST') ?: 'localhost');
 define('DB_USERNAME', getenv('DB_USER') ?: 'root');
 define('DB_PASSWORD', getenv('DB_PASSWORD') ?: '');
 define('DB_NAME', getenv('DB_NAME') ?: 'ngovy_maucnc');
 
-/* Attempt to connect to MySQL database */
+/* Khởi tạo kết nối MySQL */
 $link = mysqli_connect(DB_SERVER, DB_USERNAME, DB_PASSWORD, DB_NAME);
 
-// Check connection
 if ($link === false) {
     die("ERROR: Could not connect. " . mysqli_connect_error());
 }
 
+$link->set_charset("utf8mb4");
 
-if (!$link->set_charset("utf8mb4")) {
-    printf($link->error);
-    exit();
-} else {
-}
+// Nạp thư viện bảo mật (Sử dụng đường dẫn tuyệt đối)
+require_once __DIR__ . "/security.php";
+
+// -------------------------------------------------------------
+// CẤU HÌNH GOOGLE RECAPTCHA (CENTRALIZED CONFIG)
+// -------------------------------------------------------------
+// Việc tập trung các khóa nhạy cảm vào một file giúp:
+// 1. Dễ dàng thay đổi khi deploy lên các môi trường khác nhau.
+// 2. Tránh rò rỉ khóa khi push code lên Git (nếu kết hợp .env).
+// -------------------------------------------------------------
+// GIẢI THÍCH BẢO MẬT: TÁCH BIỆT CODE VÀ CẤU HÌNH
+// -------------------------------------------------------------
+// Tuyệt đối KHÔNG ghi cứng (Hardcode) Key thật tại đây khi up lên GitHub.
+// Thay vào đó, bạn hãy điền Key thật vào file .env (file này đã được chặn trong .gitignore).
+// -------------------------------------------------------------
+define('RECAPTCHA_SITE_KEY', getenv('RECAPTCHA_SITE_KEY') ?: '');
+define('RECAPTCHA_SECRET_KEY', getenv('RECAPTCHA_SECRET_KEY') ?: '');
+define('RECAPTCHA_ENABLED', getenv('RECAPTCHA_ENABLED') ?: 'true');
+
+// -------------------------------------------------------------
+// CẤU HÌNH THÔNG BÁO TELEGRAM (ADMIN NOTIFICATIONS)
+// -------------------------------------------------------------
+define('TELEGRAM_BOT_TOKEN', getenv('TELEGRAM_BOT_TOKEN') ?: '');
+define('TELEGRAM_CHAT_ID', getenv('TELEGRAM_CHAT_ID') ?: '');
+// -------------------------------------------------------------
+// -------------------------------------------------------------
 
 // function get_product($userid,$link){
 //     $row_fr3 = array();
