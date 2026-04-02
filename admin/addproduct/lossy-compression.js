@@ -130,6 +130,7 @@ document.getElementById('uploadButton').addEventListener('click', function () {
         formData.append('nameimg', nameInput.value);
         formData.append('typeimg', typeInput.value);
         formData.append('desimg', descriptionInput.value);
+        formData.append('csrf_token', window.CSRF_TOKEN); // Bổ sung bảo mật CSRF
     } else {
         console.error('One or more input fields are missing');
         alert('Lỗi: Không tìm thấy các trường nhập liệu.');

@@ -2,16 +2,48 @@
 
 require_once "../includes/connectdb.php";
 if (isset($_POST['search'])) {
-    $searchtext = trim($_POST['search']);
+    $searchtext = mb_substr(trim($_POST['search']), 0, 50); // Giới hạn 50 ký tự để chống ReDoS
 }
 // set limit and offset for pagination
 $limit = 24; // number of records per page
 if (isset($_GET['page'])) {
-    $page = $_GET['page']; // current page number
-    $searchtext = $_GET['search'];
+    $page = (int)$_GET['page']; // current page number
+    $searchtext = mb_substr($_GET['search'] ?? '', 0, 50);
 } else {
     $page = 1; // default page number
 }
+// -------------------------------------------------------------
+// GIẢI THÍCH BẢO MẬT: SEARCH THROTTLE (ANTI-DoS)
+// -------------------------------------------------------------
+// Vì tìm kiếm sử dụng REGEXP (biểu thức chính quy), nó tốn CPU hơn 
+// so với LIKE thông thường. Kẻ xấu có thể bắn hàng nghìn request search 
+// liên tục để làm treo máy chủ (Denial of Service).
+// GIẢI PHÁP: Giới hạn tần suất tìm kiếm mỗi phút của người dùng.
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+$now = time();
+$window = 60; // 60 giây
+$max_requests = 10; // 10 lần search
+
+if (!isset($_SESSION['search_history'])) {
+    $_SESSION['search_history'] = [];
+}
+
+// Xóa các request cũ ngoài cửa sổ 60s
+$_SESSION['search_history'] = array_filter($_SESSION['search_history'], function($t) use ($now, $window) {
+    return $t > ($now - $window);
+});
+
+if (count($_SESSION['search_history']) >= $max_requests) {
+    die("Bạn đang tìm kiếm quá nhanh. Vui lòng thử lại sau 1 phút.");
+}
+
+$_SESSION['search_history'][] = $now;
+// -------------------------------------------------------------
+
 // Calculate the offset
 $offset = ($page - 1) * $limit;
 
@@ -67,17 +99,23 @@ $show_product = "";
 if ($result->num_rows > 0) {
     // Output data of each row
     while ($row = $result->fetch_assoc()) {
+        $cleanName = Security\h($row["proname"]);
+        $cleanType = Security\h($row["protype"]);
+        $cleanDesc = Security\h($row["description"]);
         $show_product = $show_product . '
         <div class="product-item">
-            <a href="../home/viewimg.php?id=' .  $row["id"] . '">
+            <a href="../home/viewimg.php?id=' .  (int)$row["id"] . '">
                 <div class="img-container">
-                    <img src="imgs/' . $row["prourl"] . '" alt="' . htmlspecialchars($row["proname"]) . '" loading="lazy">
+                    <img src="imgs/' . Security\h($row["prourl"]) . '" alt="' . $cleanName . '" loading="lazy">
                 </div>
                 <div class="product-info">
-                    <h5>' . $row["proname"] . '</h5>
-                    <p>' . $row["description"] . '</p>
+                    <h5>' . $cleanName . '</h5>
+                    <p>' . $cleanDesc . '</p>
                 </div>
             </a>
+            <button class="add-to-cart-btn" title="Thêm vào giỏ" onclick="addToCart(event, \'' . (int)$row["id"] . '\', \'' . $cleanName . '\', \'' . Security\h($row["prourl"]) . '\', \'' . $cleanType . '\')">
+                <i class="fa fa-cart-plus"></i>
+            </button>
         </div>';
     }
 }
@@ -99,21 +137,17 @@ $total = $row['total']; // total number of records
 $pages = ceil($total / $limit); // total number of pages
 $netxpage = $page < $pages ? $page + 1 : $pages;
 $previouspage = $page > 1 ? $page - 1 : $page;
-$pageslist = '<a href="searchpage.php?page=' . $previouspage . '&search=' . $searchtext . '">&laquo;</a>';
+$pageslist = '<a href="searchpage.php?page=' . $previouspage . '&search=' . urlencode($searchtext) . '">&laquo;</a>';
 for ($i = 1; $i <= $pages; $i++) {
     if ($page == $i) {
-        $pageslist = $pageslist . '
-        <a href="#" class="active">' . $i . '</a>
-    ';
+        $pageslist .= '<a href="#" class="active">' . $i . '</a>';
     } else {
-        $pageslist = $pageslist . '
-        <a href="searchpage.php?page=' . $i . '&search=' . $searchtext . '">' . $i . '</a>
-        ';
+        $pageslist .= '<a href="searchpage.php?page=' . $i . '&search=' . urlencode($searchtext) . '">' . $i . '</a>';
     }
 }
 
 $pageslist = $pageslist . '
-    <a href="searchpage.php?page=' . $netxpage . '&search=' . $searchtext . '">&raquo;</a>
+    <a href="searchpage.php?page=' . $netxpage . '&search=' . urlencode($searchtext) . '">&raquo;</a>
     ';
 // pagination end
 $show_protype = "";
@@ -124,13 +158,23 @@ if (
     $result_fr1 && ($result_fr1->num_rows > 0)
 ) {
     while ($row_fr1 = mysqli_fetch_assoc($result_fr1)) {
-        // $rf=$row_fr1["id"];
+        // -------------------------------------------------------------
+        // GIẢI THÍCH BẢO MẬT: ĐỒNG BỘ HÓA PHÒNG THỦ (SECURE SYNC)
+        // -------------------------------------------------------------
+        // Tại sao lại phải sửa lỗi XSS ở đây khi trang chủ đã sửa?
+        // Vì trong một dự án lớn, một UI (Sidebar danh mục) có thể xuất hiện 
+        // ở nhiều file khác nhau. Nếu chỉ vá trang chủ mà quên các trang 
+        // con (Protype, Search) thì Hacker vẫn có thể tấn công từ trang đó.
+        
+        $safeType = Security\h($row_fr1["protype"]);
+        $urlType = urlencode($row_fr1["protype"]);
+
         $show_protype = $show_protype . ' 
-            
-                <a href="../home/protype.php?id=' .  $row_fr1["protype"] . '">
-                  <p class="nav-link type-link type" value="' . $row_fr1["protype"] . '" > ' . $row_fr1["protype"] . ' </p>
+                <a href="../home/protype.php?id=' .  $urlType . '">
+                  <p class="nav-link type-link type" value="' . $safeType . '" > ' . $safeType . ' </p>
                   </a>
               ';
+        // -------------------------------------------------------------
     }
 }
 
@@ -549,7 +593,9 @@ if (
             100% { transform: scale(1.6); opacity: 0; }
         }
     </style>
-
+    <!-- Cart System -->
+    <link href="css/cart.css" rel="stylesheet">
+    <script src="js/cart.js"></script>
 </head>
 
 <body class="bg-light">
@@ -562,6 +608,12 @@ if (
                 </a>
                 
                 <div class="d-flex align-items-center">
+                    <!-- Mobile Cart Icon -->
+                    <a class="cart-nav-icon mr-3 d-md-none" href="cart.php">
+                        <i class="fa fa-shopping-cart"></i>
+                        <span class="cart-badge-count">0</span>
+                    </a>
+                    
                     <button class="search-trigger" id="openSearch">
                         <i class="fa fa-search"></i>
                     </button>
@@ -584,6 +636,12 @@ if (
                         </li>
                         <li class="nav-item">
                             <a class="nav-link contactt" id="contact">Contact</a>
+                        </li>
+                        <li class="nav-item d-none d-md-flex align-items-center ml-2">
+                            <a class="nav-link cart-nav-icon" href="cart.php" style="padding: 0;">
+                                <i class="fa fa-shopping-cart" style="font-size: 1.4rem;"></i>
+                                <span class="cart-badge-count">0</span>
+                            </a>
                         </li>
                     </ul>
                 </div>

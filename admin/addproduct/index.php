@@ -1,5 +1,4 @@
 <?php
-session_start();
 require_once "../../includes/connectdb.php";
 
 if (!isset($_SESSION["id"])) {
@@ -118,26 +117,47 @@ $total_records = $total_res['total'];
 </head>
 <body>
 
-    <!-- Sidebar -->
-    <aside class="admin-sidebar">
-        <div class="sidebar-header">
-            <img src="../../home/imgs/logo/mt_logo.png" alt="Logo" style="height: 40px; margin-bottom: 10px;">
-            <h2>MẪU CNC</h2>
-            <p style="font-size: 12px; color: #95a5a6; margin: 0;">Admin Portal</p>
-        </div>
-        <div class="sidebar-nav">
-            <div class="nav-group-title">Menu Chính</div>
-            <ul>
-                <li><a href="../../admin/admin.php"><i class="fa fa-home mr-2"></i> <span>Tổng quan</span></a></li>
-                <li><a href="index.php" class="active"><i class="fa fa-plus-circle mr-2"></i> <span>Thêm sản phẩm</span></a></li>
-                <li><a href="../../admin/changepass.php"><i class="fa fa-key mr-2"></i> <span>Đổi mật khẩu</span></a></li>
-                <li><a href="../../admin/logout.php"><i class="fa fa-sign-out mr-2"></i> <span>Đăng xuất</span></a></li>
-            </ul>
+    <aside class="admin-sidebar" id="sidebar">
+        <div class="sidebar-content">
+            <div class="sidebar-header">
+                <img src="../../home/imgs/logo/mt_logo.png" alt="Logo" style="height: 40px; margin-bottom: 10px;">
+                <h2>MẪU CNC</h2>
+                <p style="font-size: 12px; color: #95a5a6; margin: 0;">Admin Portal</p>
+            </div>
+            
+            <div class="sidebar-nav">
+                <div class="cache-switch-container">
+                    <div class="switch-label">
+                        <span>Trạng thái Cache</span>
+                        <i class="fa fa-bolt" style="color: <?= $cacheEnabled ? 'var(--accent-emerald)' : '#64748b' ?>"></i>
+                    </div>
+<?php
+require_once "../../includes/cache.php";
+$cacheEnabled = FileCache::isEnabled();
+?>
+                    <form method="post" action="../toggle_cache.php" id="cacheForm">
+                        <input type="hidden" name="csrf_token" value="<?php echo Security\generate_csrf_token(); ?>">
+                        <label class="toggle-switch">
+                            <input type="checkbox" name="cache_toggle" onchange="document.getElementById('cacheForm').submit()" <?= $cacheEnabled ? 'checked' : '' ?>>
+                            <span class="slider"><span class="slider-text"></span></span>
+                        </label>
+                    </form>
+                </div>
 
-            <div class="nav-group-title mt-4">Danh mục sản phẩm</div>
-            <ul class="category-list">
-                <?php echo $show_protype; ?>
-            </ul>
+                <div class="nav-group-title">Menu Chính</div>
+                <ul>
+                    <li><a href="../../admin/admin.php"><i class="fa fa-home mr-2"></i> <span>Tổng quan</span></a></li>
+                    <li><a href="../../admin/orders.php"><i class="fa fa-shopping-cart mr-2"></i> <span>Quản lý Đơn hàng</span></a></li>
+                    <li><a href="index.php" class="active"><i class="fa fa-plus-circle mr-2"></i> <span>Thêm sản phẩm</span></a></li>
+                    <li><a href="../../admin/changepass.php"><i class="fa fa-key mr-2"></i> <span>Đổi mật khẩu</span></a></li>
+                    <li><a href="../../admin/logout.php"><i class="fa fa-sign-out mr-2"></i> <span>Đăng xuất</span></a></li>
+                </ul>
+
+                <div class="nav-group-title mt-4">Danh mục sản phẩm</div>
+                <ul class="category-list">
+                    <?php echo $show_protype; ?>
+                </ul>
+            </div>
         </div>
     </aside>
 
@@ -145,8 +165,8 @@ $total_records = $total_res['total'];
     <main class="admin-main">
         <header class="admin-header">
             <div>
-                <h1 style="font-weight: 700; font-size: 28px; margin: 0;">Thêm mẫu mới</h1>
-                <p class="text-muted">Tải ảnh lên và hệ thống sẽ tự động nén tối ưu</p>
+                <h1 style="font-weight: 700; font-size: 28px; margin: 0;">Thêm Mẫu Mới (Nâng Cao)</h1>
+                <p class="text-muted">Tải ảnh lên và hệ thống sẽ tự động nén tối ưu dung lượng</p>
             </div>
             
             <form action="../../admin/admin.php" method="GET" class="search-wrapper">
@@ -222,6 +242,10 @@ $total_records = $total_res['total'];
         </div>
     </main>
 
+    <script>
+        // TRUYỀN CSRF TOKEN TỪ PHP SANG JAVASCRIPT
+        window.CSRF_TOKEN = "<?php echo Security\generate_csrf_token(); ?>";
+    </script>
     <script src="lossy-compression.js?v=<?php echo time(); ?>"></script>
     <script src="../../home/js/my.js"></script>
 </body>

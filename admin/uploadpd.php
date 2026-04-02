@@ -1,5 +1,4 @@
 <?php
-session_start();
 require_once "../includes/connectdb.php";
 
 // Set header to JSON for all responses
@@ -170,10 +169,25 @@ function addWatermark($target_file)
     return $success ? true : "Failed to save watermarked image";
 }
 
-$upload_dir = "../home/imgs/";
+// -------------------------------------------------------------
+// GIẢI THÍCH BẢO MẬT: ĐƯỜNG DẪN TUYỆT ĐỐI (ABSOLUTE PATHS)
+// -------------------------------------------------------------
+// Khi chạy trên XAMPP hoặc Hosting, dùng đường dẫn tương đối (../) 
+// đôi khi bị lỗi nếu script được nạp từ chỗ khác. 
+// GIẢI PHÁP: Dùng __DIR__ để khóa cứng vị trí file vật lý.
+
+$upload_dir = realpath(__DIR__ . '/../home/imgs') . DIRECTORY_SEPARATOR;
+$logo_path = realpath(__DIR__ . '/../home/imgs/logo/mt_logo.png');
+// -------------------------------------------------------------
+
 $error_logs = [];
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // 1. KIỂM TRA CSRF TOKEN
+    if (!isset($_POST['csrf_token']) || !Security\verify_csrf_token($_POST['csrf_token'])) {
+        sendError("Lỗi bảo mật: CSRF Token không hợp lệ!");
+    }
+
     $des = $_POST['desimg'] ?? "";
     $pronamere = $_POST["nameimg"] ?? "Sản phẩm";
     $protype = $_POST["typeimg"] ?? "Chưa phân loại";
@@ -194,7 +208,29 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Process each file
     foreach ($_FILES as $key => $file_info) {
         if ($file_info['error'] !== UPLOAD_ERR_OK) {
-            $error_logs[] = "File upload error code: " . $file_info['error'];
+            $error_logs[] = "Lỗi upload file: " . $file_info['error'];
+            continue;
+        }
+
+        // 2. KIỂM TRA DUNG LƯỢNG (Max 10MB)
+        if ($file_info['size'] > 10 * 1024 * 1024) {
+             $error_logs[] = "File quá lớn (Tối đa 10MB): " . Security\h($file_info['name']);
+             continue;
+        }
+
+        // 3. KIỂM TRA MIME TYPE THỰC TẾ (Magic Bytes)
+        $finfo = new finfo(FILEINFO_MIME_TYPE);
+        $real_mime = $finfo->file($file_info['tmp_name']);
+        $allowed_mimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+        if (!in_array($real_mime, $allowed_mimes)) {
+            $error_logs[] = "Định dạng file không hợp lệ (Chỉ chấp nhận JPG/PNG/WebP): " . Security\h($file_info['name']);
+            continue;
+        }
+
+        // 4. KIỂM TRA KÍCH THƯỚC ẢNH (Pixel - Chống Decompression Bomb)
+        $img_info = @getimagesize($file_info['tmp_name']);
+        if (!$img_info || $img_info[0] > 10000 || $img_info[1] > 10000) {
+            $error_logs[] = "Kích thước ảnh quá lớn hoặc không hợp lệ: " . Security\h($file_info['name']);
             continue;
         }
 

@@ -1,0 +1,21 @@
+# ─────────────────────────────────────────────────────────────
+# MT CNC SECURITY SHIELD - ANTI-GRAVITY GUARD
+# ─────────────────────────────────────────────────────────────
+
+# 1. Ngăn chặn việc liệt kê thư mục (Browsing folders)
+Options -Indexes
+
+# 2. BẢO MẬT: Chặn truy cập tuyệt đối vào các tệp ẩn (Dotfiles)
+# Bao gồm: .env, .git, .gitignore, .env.example, v.v.
+<FilesMatch "^\.">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# 3. BẢO MẬT: Chặn truy cập các tệp nhạy cảm (Configs, Backups, Logs)
+# Ngăn chặn việc tải về các bản dump Database .sql ngoài ý muốn.
+<FilesMatch "(^#.*#|\.(bak|conf|dist|fla|in[ci]|log|psd|sh|sql|sw[op]|env|example))$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+

@@ -1,0 +1,97 @@
+/* Giỏ hàng Custom CSS - Mẫu CNC */
+
+/* === Icon Giỏ Hàng & Badge === */
+.cart-nav-icon {
+    position: relative;
+    font-size: 1.2rem;
+    margin-left: 10px;
+    margin-right: -10px;
+    color: white;
+    cursor: pointer;
+    transition: color 0.3s ease;
+    display: flex;
+    align-items: center;
+}
+.cart-nav-icon:hover {
+    color: var(--accent-color, #27ae60);
+}
+
+.cart-badge-count {
+    position: absolute;
+    top: -8px;
+    right: -10px;
+    background: #e74c3c;
+    color: white;
+    font-size: 0.65rem;
+    font-weight: bold;
+    padding: 2px 5px;
+    border-radius: 10px;
+    min-width: 18px;
+    text-align: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    border: 2px solid rgba(33, 37, 41, 0.85); /* Trùng màu nền header */
+    transform: scale(1);
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: none; /* Mặc định ẩn, sẽ do JS bật lên nếu > 0 */
+}
+
+/* Hiệu ứng nhấp nháy khi thêm SP */
+@keyframes pulse-ring {
+    0% { transform: scale(1); color: var(--accent-color); }
+    50% { transform: scale(1.3); color: white; }
+    100% { transform: scale(1); color: inherit; }
+}
+
+
+/* === Nút Thêm Vào Giỏ Trên Thẻ Sản Phẩm === */
+.add-to-cart-btn {
+    position: absolute;
+    bottom: 15px;
+    right: 15px;
+    background: var(--accent-color, #27ae60);
+    color: white;
+    border: none;
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    opacity: 0;
+    transform: translateY(10px) scale(0.9);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(39, 174, 96, 0.4);
+    z-index: 10;
+}
+.add-to-cart-btn i {
+    pointer-events: none; /* Tránh cản trở event click */
+}
+/* Hiển thị nút khi hover cả khối product-item */
+.product-item:hover .add-to-cart-btn {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+/* Hiệu ứng hover cho nút */
+.add-to-cart-btn:hover {
+    transform: translateY(-2px) scale(1.15) !important;
+    background: #219a52;
+}
+/* Bấm nút (Effect nẩy nhẹ) */
+.add-to-cart-btn:active {
+    transform: scale(0.95) !important;
+}
+
+/* Responsive cho Mobile: Luôn hiển thị nút Thêm vào giỏ vì Mobile không có thẻ Hover */
+@media (max-width: 768px) {
+    .add-to-cart-btn {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        bottom: 10px;
+        right: 10px;
+        width: 30px;
+        height: 30px;
+        font-size: 0.9rem;
+    }
+}

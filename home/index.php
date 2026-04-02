@@ -26,21 +26,44 @@ if ($cachedData) {
         $result_fr1 && ($result_fr1->num_rows > 0)
     ) {
         while ($row_fr1 = mysqli_fetch_assoc($result_fr1)) {
+            // -------------------------------------------------------------
+            // GIẢI THÍCH BẢO MẬT: SECOND-ORDER SQL INJECTION
+            // -------------------------------------------------------------
+            // LỖI (DƯỚI ĐÂY): Server tin tưởng dữ liệu $row_fr1["protype"] lấy ra từ DB.
+            // Nếu một Admin xấu tính đặt tên danh mục là: "; DROP TABLE products --
+            // thì câu lệnh nối chuỗi bên dưới sẽ xóa sạch dữ liệu.
+            /*
             $sql_fr = 'SELECT * from products where protype="' . $row_fr1["protype"] . '" order by id DESC';
             $result_fr = $link->query($sql_fr);
+            */
+            
+            // GIẢI PHÁP: Luôn dùng Prepared Statement cho mọi dữ liệu biến, 
+            // kể cả khi nó đến từ Database của chính mình.
+            $stmt_items = $link->prepare("SELECT * FROM products WHERE protype = ? ORDER BY id DESC");
+            $stmt_items->bind_param("s", $row_fr1["protype"]);
+            $stmt_items->execute();
+            $result_fr = $stmt_items->get_result();
+            // -------------------------------------------------------------
             if ($result_fr && ($result_fr->num_rows > 0)) {
                 $row_fr = mysqli_fetch_assoc($result_fr);
+                $cleanName = Security\h($row_fr["proname"]);
+                $cleanType = Security\h($row_fr["protype"]);
+                $cleanDesc = Security\h($row_fr["description"]);
+                
                 $show_product = $show_product . '
-                  <div class="product-item" value="' . $row_fr1["protype"] . '">
-                      <a href="../home/protype.php?id=' .  $row_fr1["protype"] . '">
+                  <div class="product-item" value="' . $cleanType . '">
+                      <a href="../home/protype.php?id=' .  urlencode($row_fr["protype"] ?? '') . '">
                           <div class="img-container">
-                              <img src="imgs/' . $row_fr["prourl"] . '" alt="' . $row_fr["proname"] . '" loading="lazy">
+                              <img src="imgs/' . Security\h($row_fr["prourl"] ?? '') . '" alt="' . $cleanName . '" loading="lazy">
                           </div>
                           <div class="product-info">
-                              <h5>' . $row_fr["proname"] . '</h5>
-                              <p>' . $row_fr["description"] . '</p>
+                              <h5>' . $cleanName . '</h5>
+                              <p>' . $cleanDesc . '</p>
                           </div>
                       </a>
+                      <button class="add-to-cart-btn" title="Thêm vào giỏ" onclick="addToCart(event, \'' . (int)$row_fr["id"] . '\', \'' . $cleanName . '\', \'' . Security\h($row_fr["prourl"]) . '\', \'' . $cleanType . '\')">
+                          <i class="fa fa-cart-plus"></i>
+                      </button>
                   </div>
                   ';
             }
@@ -78,19 +101,23 @@ if ($cachedData) {
     $show_protypelist = "";
     $sql_fr1 = "SELECT protype from products group by protype";
     $result_fr1 = $link->query($sql_fr1);
-    if (
-        $result_fr1 && ($result_fr1->num_rows > 0)
-    ) {
-        while ($row_fr1 = mysqli_fetch_assoc($result_fr1)) {
-            // $rf=$row_fr1["id"];
+    if ($result_fr1 && ($result_fr1->num_rows > 0)) {
+        while ($row_fr1 = $result_fr1->fetch_assoc()) {
+            $rawType = $row_fr1["protype"] ?? '';
+            // Bỏ qua nếu tên danh mục trống để tránh làm xấu Menu/Sidebar
+            if (empty(trim($rawType))) continue;
+
+            $safeType = Security\h($rawType);
+            $urlType = urlencode($rawType);
+
             $show_protype = $show_protype . ' 
-                    <a href="../home/protype.php?id=' .  $row_fr1["protype"] . '">
-                      <p class="nav-link type-link type" value="' . $row_fr1["protype"] . '" > ' . $row_fr1["protype"] . ' </p>
+                    <a href="../home/protype.php?id=' .  $urlType . '">
+                      <p class="nav-link type-link type" value="' . $safeType . '" > ' . $safeType . ' </p>
                     </a>
                   ';
              $show_protypelist = $show_protypelist . ' <li>
-                    <a " href="../home/protype.php?id=' .  $row_fr1["protype"] . '">
-                    ' .  $row_fr1["protype"] . '
+                    <a href="../home/protype.php?id=' .  $urlType . '">
+                    ' .  $safeType . '
                       </a>
                   </li>';
         }
@@ -116,6 +143,7 @@ if ($cachedData) {
     <title>Mẫu CNC</title>
     <link rel="shortcut icon" href="imgs/logo/mt_logo.png">
     <script src="js/jquery.js"></script>
+    <script src="js/cart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
     <link href="css/bootstrap.min.css" rel="stylesheet">
@@ -144,7 +172,7 @@ if ($cachedData) {
         ::-webkit-scrollbar-thumb:hover { background: #999; }
 
         /* Navigation Header */
-        /* --- PREMIUM HEADER UPGRADE --- */
+        /* --- NAVIGATION HEADER --- */
         .headerr {
             z-index: 1050;
             position: fixed;
@@ -205,6 +233,17 @@ if ($cachedData) {
         }
         .nav-link:hover::after, .nav-item.active .nav-link::after {
             width: 80%;
+        }
+
+        /* Mobile Search Toggle */
+        .search-trigger {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            padding: 8px;
+            display: none; /* Desktop hidden */
+            transition: opacity 0.3s;
         }
 
         /* Mobile Search Toggle */
@@ -456,6 +495,50 @@ if ($cachedData) {
             line-height: 1.4;
         }
 
+        /* Add to Cart Button */
+        .add-to-cart-btn {
+            position: absolute;
+            bottom: 12px;
+            right: 12px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(39, 174, 96, 0.4);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+            z-index: 5;
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        .product-item:hover .add-to-cart-btn {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .add-to-cart-btn:hover {
+            transform: scale(1.15) !important;
+            background: #219150;
+            box-shadow: 0 6px 15px rgba(39, 174, 96, 0.5);
+        }
+        .add-to-cart-btn i { font-size: 1rem; }
+
+        /* Responsive adjustments */
+        @media (max-width: 576px) {
+            .add-to-cart-btn {
+                opacity: 1;
+                transform: none;
+                width: 32px;
+                height: 32px;
+                bottom: 8px;
+                right: 8px;
+            }
+        }
+
         /* Sidebar Styles */
         .sidebar-heading {
             font-weight: 700;
@@ -577,8 +660,35 @@ if ($cachedData) {
             80% { transform: scale(1.6); opacity: 0; }
             100% { transform: scale(1.6); opacity: 0; }
         }
-    </style>
 
+        /* --- MODAL MENU POPUP --- */
+        .modal-menu .modal-content {
+            border-radius: 25px;
+            background: rgba(33, 37, 41, 0.98);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 15px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+        }
+        .modal-menu .close-btn {
+            text-align: right;
+            cursor: pointer;
+            color: white;
+            font-weight: bold;
+            padding: 10px;
+            font-size: 1.1rem;
+        }
+        .modal-menu .nav-link {
+            text-align: center;
+            font-size: 1.25rem;
+            padding: 18px !important;
+            color: white !important;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            font-weight: 500;
+        }
+        .modal-menu .nav-link:last-child { border: none; }
+    </style>
 </head>
 
 <body class="bg-light">
@@ -591,30 +701,22 @@ if ($cachedData) {
                 </a>
                 
                 <div class="d-flex align-items-center">
+                    
                     <button class="search-trigger" id="openSearch">
                         <i class="fa fa-search"></i>
                     </button>
+
+                    <!-- Cart Icon (Visible on all devices) -->
+                    <a class="nav-link cart-nav-icon p-0 mx-2" href="cart.php" title="Giỏ hàng">
+                        <i class="fa fa-shopping-cart" style="font-size: 1.3rem;"></i>
+                        <span class="cart-badge-count">0</span>
+                    </a>
                     
-                    <button class="navbar-toggler ml-2" id="btnhide" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
+                    <button class="navbar-toggler ml-2" id="btnhide" type="button" data-toggle="modal" data-target="#menuModal" aria-label="Toggle navigation">
                         <span class="navbar-toggler-icon"></span>
                     </button>
                 </div>
-                <div class="collapse navbar-collapse" id="navbarsExampleDefault">
-                    <ul class="navbar-nav mr-auto">
-                        <li class="nav-item active">
-                            <a class="nav-link" href="../home">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="https://www.facebook.com/thien.bui.12327608">FaceBook</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href=" https://zalo.me/0338790560">ZALO</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link contactt" id="contact">Contact</a>
-                        </li>
-                    </ul>
-                </div>
+                <!-- Bỏ phần collapse cũ để dùng Modal -->
                 <form action="searchpage.php" method="post" class="ml-auto d-none d-md-block" id="ser-form">
                     <div class="form-row">
                         <div class="col-8">
@@ -645,6 +747,9 @@ if ($cachedData) {
             <input type="text" name="search" placeholder="Type to search..." autofocus id="overlaySearchInput">
         </form>
     </div>
+
+
+
 
 
     <!-- end slide -->
@@ -723,6 +828,33 @@ if ($cachedData) {
         </footer>
         <!-- Footer -->
 
+    <!-- Modal Menu Mobile -->
+    <div class="modal fade modal-menu" id="menuModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="close-btn" data-dismiss="modal">&times; ĐÓNG</div>
+                <div class="modal-body p-0">
+                    <ul class="navbar-nav w-100">
+                        <li class="nav-item">
+                            <a class="nav-link" href="../home">Trang chủ</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="https://www.facebook.com/thien.bui.12327608">FaceBook</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="https://zalo.me/0338790560">Zalo</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link contactt" id="contact-m" data-dismiss="modal">Liên hệ</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="cart.php">Giỏ hàng</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 
 <script src="js/my.js"></script>

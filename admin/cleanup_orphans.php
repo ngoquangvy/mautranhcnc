@@ -1,10 +1,25 @@
-<?php
 require_once "../includes/connectdb.php";
 
-session_start();
 if (!isset($_SESSION['id'])) {
     die("Unauthorized");
 }
+
+// -------------------------------------------------------------
+// GIẢI THÍCH BẢO MẬT: PHÒNG THỦ CHIỀU SÂU
+// -------------------------------------------------------------
+/*
+// MÃ LỖI (GIẢ ĐỊNH) - CỰC KỲ NGUY HIỂM:
+// 1. Không check SESSION: Bất kỳ ai biết URL cũng có thể kích hoạt dọn dẹp file.
+// 2. Không check CSRF: Admin đang đăng nhập có thể bị lừa bấm vào link ẩn 
+//    và xóa sạch kho ảnh của shop.
+// 3. Thiếu sanitize filename: Scanner có thể bị lừa xóa cả file hệ thống khác.
+
+$dir_files = scandir("../home/imgs/");
+foreach ($dir_files as $f) {
+   if (!in_array($f, $db_imgs)) unlink("../home/imgs/" . $f);
+}
+*/
+// -------------------------------------------------------------
 
 $upload_dir = "../home/imgs/";
 $system_files = ['.htaccess', 'logo', 'logo_watermark.png', '.', '..'];

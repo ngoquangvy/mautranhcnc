@@ -1,21 +1,32 @@
 <?php
 require_once "../includes/connectdb.php";
+require_once "../includes/security.php";
 
 $id = $_GET['id'];
 $show_product = "";
 $proname = "Chi tiết mẫu";
 $protype = "";
 
+/*
+// MÃ NGUỒN CŨ (DỄ BỊ SQL INJECTION)
 $sql_fr1 = 'SELECT * from products where id ="' . $id . '"  ';
 $result_fr1 = $link->query($sql_fr1);
+*/
+
+// MÃ NGUỒN MỚI: SỬ DỤNG PREPARED STATEMENTS
+$stmt = $link->prepare("SELECT prourl, proname, protype FROM products WHERE id = ?");
+$stmt->bind_param("i", $id);
+$stmt->execute();
+$result_fr1 = $stmt->get_result();
 
 if ($result_fr1 && ($result_fr1->num_rows > 0)) {
-    while ($row_fr1 = mysqli_fetch_assoc($result_fr1)) {
+    while ($row_fr1 = $result_fr1->fetch_assoc()) {
         $show_product = $row_fr1["prourl"];
         $proname = $row_fr1["proname"];
         $protype = $row_fr1["protype"];
     }
 }
+$stmt->close();
 ?>
 <!DOCTYPE html>
 <html lang="vi">

@@ -13,26 +13,40 @@ $limit = 12; // number of records per page
 $offset = ($page - 1) * $limit;
 $show_product = "";
 
+/*
+// MÃ NGUỒN CŨ (DỄ BỊ SQL INJECTION)
 $sql_fr1 = "SELECT * FROM products WHERE protype = '$id' ORDER BY id DESC LIMIT $limit OFFSET $offset";
-
 $result_fr1 = $link->query($sql_fr1);
+*/
+
+// MÃ NGUỒN MỚI: SỬ DỤNG PREPARED STATEMENTS
+$stmt = $link->prepare("SELECT id, proname, protype, prourl, description FROM products WHERE protype = ? ORDER BY id DESC LIMIT ? OFFSET ?");
+$stmt->bind_param("sii", $id, $limit, $offset);
+$stmt->execute();
+$result_fr1 = $stmt->get_result();
 
 
 
 if ($result_fr1 && ($result_fr1->num_rows > 0)) {
 
-    while ($row_fr1 = mysqli_fetch_assoc($result_fr1)) {
+    while ($row_fr1 = $result_fr1->fetch_assoc()) {
+        $cleanName = Security\h($row_fr1["proname"]);
+        $cleanType = Security\h($row_fr1["protype"]);
+        $cleanDesc = Security\h($row_fr1["description"]);
         $show_product = $show_product . '
         <div class="product-item">
-            <a href="../home/viewimg.php?id=' .  $row_fr1["id"] . '">
+            <a href="../home/viewimg.php?id=' .  (int)$row_fr1["id"] . '">
                 <div class="img-container">
-                    <img src="imgs/' . $row_fr1["prourl"] . '" alt="' . htmlspecialchars($row_fr1["proname"]) . '" loading="lazy">
+                    <img src="imgs/' . Security\h($row_fr1["prourl"]) . '" alt="' . $cleanName . '" loading="lazy">
                 </div>
                 <div class="product-info">
-                    <h5>' . $row_fr1["proname"] . '</h5>
-                    <p>' . $row_fr1["description"] . '</p>
+                    <h5>' . $cleanName . '</h5>
+                    <p>' . $cleanDesc . '</p>
                 </div>
             </a>
+            <button class="add-to-cart-btn" title="Thêm vào giỏ" onclick="addToCart(event, \'' . (int)$row_fr1["id"] . '\', \'' . $cleanName . '\', \'' . Security\h($row_fr1["prourl"]) . '\', \'' . $cleanType . '\')">
+                <i class="fa fa-cart-plus"></i>
+            </button>
         </div>';
     }
 }
@@ -45,27 +59,40 @@ if (
     $result_fr1 && ($result_fr1->num_rows > 0)
 ) {
     while ($row_fr1 = mysqli_fetch_assoc($result_fr1)) {
-        // $rf=$row_fr1["id"];
+        // -------------------------------------------------------------
+        // GIẢI THÍCH BẢO MẬT: STORED XSS (CROSS-SITE SCRIPTING)
+        // -------------------------------------------------------------
+        // GIỐNG NHƯ TRANG CHỦ: Dữ liệu danh mục từ DB có thể bị "đầu độc".
+        // Việc không escape (h()) sẽ giúp kẻ xấu thi triển mã độc JS.
+        
+        $safeType = Security\h($row_fr1["protype"]);
+        $urlType = urlencode($row_fr1["protype"]);
+
         $show_protype = $show_protype . ' 
-            
-                <a href="../home/protype.php?id=' .  $row_fr1["protype"] . '">
-                  <p class="nav-link type-link type" value="' . $row_fr1["protype"] . '" > ' . $row_fr1["protype"] . ' </p>
+                <a href="../home/protype.php?id=' .  $urlType . '">
+                  <p class="nav-link type-link type" value="' . $safeType . '" > ' . $safeType . ' </p>
                   </a>
               ';
         $show_protypelist = $show_protypelist . ' <li>
-              <a " href="../home/protype.php?id=' .  $row_fr1["protype"] . '">
-              ' .  $row_fr1["protype"] . '
+              <a href="../home/protype.php?id=' .  $urlType . '">
+              ' .  $safeType . '
                 </a>
             </li>';
+        // -------------------------------------------------------------
     }
 }
 
 // pagination begin
-$stmt = $link->prepare('SELECT count(id) as total from products where protype ="' . $id . '"');
-$stmt->execute();
-$result = $stmt->get_result();
-$row = $result->fetch_assoc();
-$total = $row['total']; // total number of records
+/*
+// CŨ: $stmt = $link->prepare('SELECT count(id) as total from products where protype ="' . $id . '"');
+*/
+// MỚI
+$stmt_count = $link->prepare('SELECT count(id) as total from products where protype = ?');
+$stmt_count->bind_param("s", $id);
+$stmt_count->execute();
+$result_count = $stmt_count->get_result();
+$row_count = $result_count->fetch_assoc();
+$total = $row_count['total']; // total number of records
 // calculate total number of pages for pagination
 $pages = ceil($total / $limit); // total number of pages
 $netxpage = $page < $pages ? $page + 1 : $page;
@@ -549,7 +576,9 @@ $pageslist = $pageslist . '
             100% { transform: scale(1.6); opacity: 0; }
         }
     </style>
-
+    <!-- Cart System -->
+    <link href="css/cart.css" rel="stylesheet">
+    <script src="js/cart.js"></script>
 </head>
 
 <body class="bg-light">
@@ -562,6 +591,12 @@ $pageslist = $pageslist . '
                 </a>
                 
                 <div class="d-flex align-items-center">
+                    <!-- Mobile Cart Icon -->
+                    <a class="cart-nav-icon mr-3 d-md-none" href="cart.php">
+                        <i class="fa fa-shopping-cart"></i>
+                        <span class="cart-badge-count">0</span>
+                    </a>
+                    
                     <button class="search-trigger" id="openSearch">
                         <i class="fa fa-search"></i>
                     </button>
@@ -584,6 +619,12 @@ $pageslist = $pageslist . '
                         </li>
                         <li class="nav-item">
                             <a class="nav-link contactt" id="contact">Contact</a>
+                        </li>
+                        <li class="nav-item d-none d-md-flex align-items-center ml-2">
+                            <a class="nav-link cart-nav-icon" href="cart.php" style="padding: 0;">
+                                <i class="fa fa-shopping-cart" style="font-size: 1.4rem;"></i>
+                                <span class="cart-badge-count">0</span>
+                            </a>
                         </li>
                     </ul>
                 </div>

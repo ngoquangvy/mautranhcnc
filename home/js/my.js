@@ -145,7 +145,7 @@ $(document).ready(function () {
             alert("Lỗi: Không thể xóa sản phẩm " + val);
           }
         }
-        xhttp.open("GET", "deletepd.php?t=" + val);
+        xhttp.open("GET", "deletepd.php?t=" + encodeURIComponent(val) + "&token=" + window.CSRF_TOKEN);
         xhttp.send();
       }
     );
@@ -204,20 +204,40 @@ $(document).ready(function () {
             alert("Lỗi: Không thể xóa danh mục " + val);
           }
         };
-        xhttp.open("GET", "deletept.php?t=" + val);
+        xhttp.open("GET", "deletept.php?t=" + encodeURIComponent(val) + "&token=" + window.CSRF_TOKEN);
         xhttp.send();
       }
     );
   });
 
+  // --- MOBILE POPUP MENU LOGIC ---
+  
+  // Hàm phụ để chỉ đóng Menu nếu nó đang mở (Modal)
+  function closeNavbarIfOpen() {
+    if ($('#menuModal').hasClass('show')) {
+      $('#menuModal').modal('hide');
+    }
+  }
+
   $(".typepro").click(function () {
-    if (document.getElementById("btnhide")) document.getElementById("btnhide").click();
+    closeNavbarIfOpen();
     document.body.scrollTop = 0;
     document.documentElement.scrollTop = 0;
   });
 
   $(".contactt").click(function () {
-    if (document.getElementById("btnhide")) document.getElementById("btnhide").click();
+    closeNavbarIfOpen();
+  });
+
+  // Tự động đóng Navbar khi click ra ngoài vùng Menu (Mobile UX)
+  $(document).on('click', function (event) {
+    const clickOver = $(event.target);
+    const navbar = $('#navbarsExampleDefault');
+    const opened = navbar.hasClass('show');
+    
+    if (opened === true && !clickOver.closest('.navbar').length) {
+      $('#btnhide').click();
+    }
   });
 
   // --- PREMIUM HEADER LOGIC ---
