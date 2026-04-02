@@ -1,6 +1,7 @@
 <?php
 
 require_once "../includes/connectdb.php";
+$searchtext = mb_substr(trim($_GET['search'] ?? ''), 0, 50); // Keep search in URL to avoid form resubmission
 if (isset($_POST['search'])) {
     $searchtext = mb_substr(trim($_POST['search']), 0, 50); // Giới hạn 50 ký tự để chống ReDoS
 }
@@ -646,10 +647,10 @@ if (
                     </ul>
                 </div>
                 
-                <form action="searchpage.php" method="post" class="ml-auto d-none d-md-block" id="ser-form">
+                <form action="searchpage.php" method="get" class="ml-auto d-none d-md-block" id="ser-form">
                     <div class="form-row">
                         <div class="col-8">
-                            <input type="text" class="form-control rounded-pill bg-dark ser-input" id="ser-input" name="search" placeholder="Search...">
+                            <input type="text" class="form-control rounded-pill bg-dark ser-input" id="ser-input" name="search" placeholder="Search..." value="<?php echo Security\h($searchtext); ?>">
                         </div>
                         <div class="col-4">
                             <button type="submit" class="btn btn-primary rounded-pill px-4">
@@ -673,8 +674,8 @@ if (
     <!-- Search Overlay -->
     <div class="search-overlay" id="searchOverlay">
         <div class="close-search" id="closeSearch">&times;</div>
-        <form action="searchpage.php" method="post">
-            <input type="text" name="search" placeholder="Type to search..." autofocus id="overlaySearchInput">
+        <form action="searchpage.php" method="get">
+            <input type="text" name="search" placeholder="Type to search..." autofocus id="overlaySearchInput" value="<?php echo Security\h($searchtext); ?>">
         </form>
     </div>
 

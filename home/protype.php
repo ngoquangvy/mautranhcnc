@@ -629,7 +629,7 @@ $pageslist = $pageslist . '
                     </ul>
                 </div>
                 
-                <form action="searchpage.php" method="post" class="ml-auto d-none d-md-block" id="ser-form">
+                <form action="searchpage.php" method="get" class="ml-auto d-none d-md-block" id="ser-form">
                     <div class="form-row">
                         <div class="col-8">
                             <input type="text" class="form-control rounded-pill bg-dark ser-input" id="ser-input" name="search" placeholder="Search...">
@@ -656,7 +656,7 @@ $pageslist = $pageslist . '
     <!-- Search Overlay -->
     <div class="search-overlay" id="searchOverlay">
         <div class="close-search" id="closeSearch">&times;</div>
-        <form action="searchpage.php" method="post">
+        <form action="searchpage.php" method="get">
             <input type="text" name="search" placeholder="Type to search..." autofocus id="overlaySearchInput">
         </form>
     </div>
