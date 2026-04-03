@@ -25,51 +25,53 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
     $action = $_GET['action'];
     $order_id = (int) $_GET['id'];
 
-    // Lấy tên khách hàng trước
-    $c_name = "Khách";
-    $query_name = $link->prepare("SELECT customer_name FROM orders WHERE id = ?");
-    $query_name->bind_param("i", $order_id);
-    $query_name->execute();
-    $res_name = $query_name->get_result();
-    if ($n_row = $res_name->fetch_assoc())
-        $c_name = $n_row['customer_name'];
-    $u_name = urlencode($c_name);
+    $order_id = (int)$_GET['id'];
+    $u_name = Security\u($_GET['name'] ?? 'Khách');
+    $token = $_GET['token'] ?? '';
+
+    // Xác thực Token CSRF & Phân quyền
+    if (!Security\verify_csrf_token($token)) {
+        header("location: orders.php?msg=auth_disabled");
+        exit;
+    }
+
+    $is_ajax = isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
 
     if ($action === 'trash') {
         $stmt = $link->prepare("UPDATE orders SET status = 'trashed', trashed_at = NOW() WHERE id = ?");
         $stmt->bind_param("i", $order_id);
         $stmt->execute();
+        if ($is_ajax) { echo json_encode(['ok' => true]); exit; }
         header("location: orders.php?msg=trashed&id=$order_id&name=$u_name");
         exit;
     } elseif ($action === 'process') {
         $stmt = $link->prepare("UPDATE orders SET status = 'processed', processed_at = NOW() WHERE id = ?");
         $stmt->bind_param("i", $order_id);
         $stmt->execute();
+        if ($is_ajax) { echo json_encode(['ok' => true]); exit; }
         header("location: orders.php?msg=processed&id=$order_id&name=$u_name");
         exit;
     } elseif ($action === 'restore') {
         $stmt = $link->prepare("UPDATE orders SET status = 'new', trashed_at = NULL, processed_at = NULL WHERE id = ?");
         $stmt->bind_param("i", $order_id);
         $stmt->execute();
+        if ($is_ajax) { echo json_encode(['ok' => true]); exit; }
         header("location: orders.php?view=trash&msg=restored&id=$order_id&name=$u_name");
         exit;
     } elseif ($action === 'delete') {
-        // TẠM THỜI KHÓA API XÓA VĨNH VIỄN
-        // Phục vụ cho mục đích xây dựng hệ thống Role-base Auth (Phân quyền nhân viên)
-        // Khi nào có Nhân viên Đăng nhập thì chỉ Admin mới được chạy lệnh này, nhân viên thì không.
-
-        /* [DO NOT UNCOMMENT UNTIL ROLE AUTH IS READY]
+        if (!ADMIN_CAN_DELETE_ORDER) {
+            if ($is_ajax) { echo json_encode(['ok' => false, 'error' => 'Permission denied']); exit; }
+            header("location: orders.php?view=trash&msg=auth_disabled");
+            exit;
+        }
         $stmt1 = $link->prepare("DELETE FROM order_items WHERE order_id = ?");
         $stmt1->bind_param("i", $order_id);
         $stmt1->execute();
-
         $stmt2 = $link->prepare("DELETE FROM orders WHERE id = ?");
         $stmt2->bind_param("i", $order_id);
         $stmt2->execute();
-        */
-
-        // Gọi thẳng màn hình báo lỗi cấp quyền
-        header("location: orders.php?view=trash&msg=auth_disabled");
+        if ($is_ajax) { echo json_encode(['ok' => true]); exit; }
+        header("location: orders.php?view=trash&msg=deleted&id=$order_id&name=$u_name");
         exit;
     }
 }
@@ -119,6 +121,11 @@ if ($res_orders && $res_orders->num_rows > 0) {
         $orders[] = $row;
     }
 }
+
+// [MỚI] TÍNH TOÁN SỐ LƯỢNG ĐƠN HÀNG ĐỂ HIỆN TRÊN STATS BAR
+$c_new = $link->query("SELECT COUNT(*) FROM orders WHERE status = 'new'")->fetch_row()[0] ?? 0;
+$c_done = $link->query("SELECT COUNT(*) FROM orders WHERE status = 'processed'")->fetch_row()[0] ?? 0;
+$c_trash = $link->query("SELECT COUNT(*) FROM orders WHERE status = 'trashed'")->fetch_row()[0] ?? 0;
 ?>
 <!DOCTYPE html>
 <html lang="vi">
@@ -303,6 +310,107 @@ if ($res_orders && $res_orders->num_rows > 0) {
             border-color: #1e293b;
         }
 
+        /* [MỚI] BỔ SUNG CSS CHO NHÓM NÚT MOBILE */
+        .mobile-actions-wrapper {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .mobile-actions-wrapper .btn-action {
+            flex: 1;
+            margin-bottom: 0;
+            padding: 10px 5px;
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+
+        /* [MỚI] CSS TỐI ƯU HIỂN THỊ CHỐNG TRÀN (TRUNCATION) */
+
+        /* [MỚI] CSS TỐI ƯU HIỂN THỊ CHỐNG TRÀN (TRUNCATION) */
+        .customer-name {
+            max-width: 200px; /* Giới hạn khoảng 25-30 ký tự */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-weight: 700;
+            color: #1e293b;
+            font-size: 1.1rem;
+        }
+
+        .customer-phone {
+            max-width: 150px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #0284c7;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .order-note-container {
+            max-width: 350px;
+            position: relative;
+        }
+
+        .order-note-content {
+            max-height: 48px; /* Hiện khoảng 2 dòng */
+            overflow: hidden;
+            font-size: 0.9rem;
+            color: #475569;
+            line-height: 1.5;
+            cursor: pointer;
+            transition: max-height 0.3s ease;
+            position: relative;
+            word-break: break-all; /* Ép xuống hàng khi chuỗi quá dài không dấu cách */
+            overflow-wrap: break-word;
+        }
+
+        .order-note-content.expanded {
+            max-height: 2000px; /* Mở rộng tối đa */
+            overflow: visible;
+        }
+
+        /* Hiệu ứng mờ ở cuối nếu nội dung bị cắt */
+        .order-note-content:not(.expanded)::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 100%;
+            height: 18px;
+            background: linear-gradient(transparent, #f8fafc);
+        }
+
+        /* [MỚI] CSS CHO THANH THỐNG KÊ (STATS BAR) */
+
+        /* [MỚI] CSS CHO THANH THỐNG KÊ (STATS BAR) */
+        .stats-bar {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .stat-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 700;
+        }
+
+        .stat-badge i { font-size: 1rem; }
+        .stat-new { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
+        .stat-processed { background: #dcfce7; color: #16a34a; border: 1px solid #bbf7d0; }
+        .stat-trash { background: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0; }
+
+        @media (max-width: 992px) {
+            .tab-stats-wrapper { flex-direction: column; align-items: flex-start !important; gap: 15px; }
+            .stats-bar { width: 100%; justify-content: space-between; }
+        }
+
         /* Responsive Mobile Layout For Orders Only */
         @media (max-width: 768px) {
             .admin-sidebar {
@@ -330,6 +438,26 @@ if ($res_orders && $res_orders->num_rows > 0) {
             .table-custom thead {
                 display: none;
                 /* Ẩn thẻ tiêu đề bảng trên Mobile */
+            }
+
+            .tab-stats-wrapper {
+                flex-direction: column;
+                align-items: flex-start !important;
+                gap: 10px;
+                background: #f1f5f9;
+                padding: 15px;
+                border-radius: 12px;
+            }
+
+            .stats-bar {
+                width: 100%;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            .stat-badge {
+                padding: 4px 10px;
+                font-size: 0.75rem;
             }
 
             .table-custom tbody tr {
@@ -456,16 +584,35 @@ if ($res_orders && $res_orders->num_rows > 0) {
             </div>
 
             <div class="header-tabs">
-                <a href="orders.php?view=active" class="<?php echo $view_mode == 'active' ? 'active' : ''; ?>">
-                    <i class="fa fa-inbox mr-1"></i> Trạng thái Đơn hàng
-                </a>
-                <a href="orders.php?view=trash" class="<?php echo $view_mode == 'trash' ? 'active' : ''; ?>">
-                    <i class="fa fa-trash mr-1"></i> Thùng rác sinh thái
-                </a>
+                <!-- Tabs nay da duoc di vao orders-container de Sync Ajax -->
             </div>
         </header>
 
         <div class="orders-container mt-4">
+            <!-- [MỚI] THANH ĐIỀU HƯỚNG & THỐNG KÊ (Đã di chuyển vào đây để cập nhật Ajax) -->
+            <div class="tab-stats-wrapper d-flex justify-content-between align-items-center mb-4">
+                <div class="header-tabs" style="margin: 0;">
+                    <a href="orders.php?view=active" class="<?php echo $view_mode == 'active' ? 'active' : ''; ?>">
+                        <i class="fa fa-inbox mr-1"></i> Trạng thái Đơn hàng
+                    </a>
+                    <a href="orders.php?view=trash" class="<?php echo $view_mode == 'trash' ? 'active' : ''; ?>">
+                        <i class="fa fa-trash mr-1"></i> Thùng rác sinh thái
+                    </a>
+                </div>
+
+                <div class="stats-bar">
+                    <div class="stat-badge stat-new" title="Đơn hàng chưa xử lý">
+                        <i class="fa fa-clock-o"></i> Chưa chốt: <span><?php echo $c_new; ?></span>
+                    </div>
+                    <div class="stat-badge stat-processed" title="Đơn hàng đã hoàn tất">
+                        <i class="fa fa-check-circle"></i> Đã chốt: <span><?php echo $c_done; ?></span>
+                    </div>
+                    <div class="stat-badge stat-trash" title="Đơn hàng trong thùng rác">
+                        <i class="fa fa-trash"></i> Thùng rác: <span><?php echo $c_trash; ?></span>
+                    </div>
+                </div>
+            </div>
+
             <?php
             if (isset($_GET['msg'])):
                 $nID = isset($_GET['id']) ? '#' . htmlspecialchars($_GET['id']) : '';
@@ -474,16 +621,20 @@ if ($res_orders && $res_orders->num_rows > 0) {
                 ?>
                 <?php if ($_GET['msg'] == 'trashed'): ?>
                     <div class="alert alert-warning mt-2 mb-4 auto-hide"><i class="fa fa-trash mr-2"></i> Đã đưa đơn
-                        <strong><?php echo $txtInfo; ?></strong> vào Thùng rác!</div>
+                        <strong><?php echo $txtInfo; ?></strong> vào Thùng rác!
+                    </div>
                 <?php elseif ($_GET['msg'] == 'processed'): ?>
                     <div class="alert alert-success mt-2 mb-4 auto-hide"><i class="fa fa-check mr-2"></i> Đã đánh dấu Chốt Đơn
-                        <strong><?php echo $txtInfo; ?></strong> thành công!</div>
+                        <strong><?php echo $txtInfo; ?></strong> thành công!
+                    </div>
                 <?php elseif ($_GET['msg'] == 'deleted'): ?>
                     <div class="alert alert-danger mt-2 mb-4 auto-hide"><i class="fa fa-ban mr-2"></i> Đã xóa vĩnh viễn đơn
-                        <strong><?php echo $txtInfo; ?></strong> khỏi máy chủ!</div>
+                        <strong><?php echo $txtInfo; ?></strong> khỏi máy chủ!
+                    </div>
                 <?php elseif ($_GET['msg'] == 'restored'): ?>
                     <div class="alert alert-info mt-2 mb-4 auto-hide"><i class="fa fa-refresh mr-2"></i> Khôi phục đơn
-                        <strong><?php echo $txtInfo; ?></strong> thành công!</div>
+                        <strong><?php echo $txtInfo; ?></strong> thành công!
+                    </div>
                 <?php elseif ($_GET['msg'] == 'auth_disabled'): ?>
                     <div class="alert alert-secondary mt-2 mb-4 auto-hide"><i class="fa fa-lock mr-2"></i> Quyền Xóa Vĩnh Viễn
                         đang bị tạm khóa để chuẩn bị hệ thống Role-based Auth!</div>
@@ -526,21 +677,27 @@ if ($res_orders && $res_orders->num_rows > 0) {
                                     <?php endif; ?>
                                 </td>
                                 <td>
-                                    <div class="customer-name"><?php echo htmlspecialchars($o['customer_name']); ?></div>
-                                    <div class="customer-phone mt-1"><i
-                                            class="fa fa-phone mr-1"></i><?php echo htmlspecialchars($o['customer_phone']); ?>
+                                    <div class="customer-name" title="<?php echo htmlspecialchars($o['customer_name']); ?>">
+                                        <?php echo htmlspecialchars($o['customer_name']); ?>
+                                    </div>
+                                    <div class="customer-phone mt-1" title="Click để mở Zalo / Gọi điện"
+                                         onclick="window.open('https://zalo.me/<?php echo preg_replace('/[^0-9]/', '', $o['customer_phone']); ?>')">
+                                        <i class="fa fa-phone mr-1"></i><?php echo htmlspecialchars($o['customer_phone']); ?>
                                     </div>
                                     <div class="order-date mt-1"><i class="fa fa-star-o mr-1"></i>Tạo:
-                                        <?php echo date("d-m-Y H:i", strtotime($o['created_at'])); ?></div>
+                                        <?php echo date("d-m-Y H:i", strtotime($o['created_at'])); ?>
+                                    </div>
                                     <?php if (!empty($o['processed_at'])): ?>
                                         <div class="order-date mt-1" style="color: #10b981; font-weight: 600;"><i
                                                 class="fa fa-check-circle mr-1"></i>Chốt:
-                                            <?php echo date("d-m-Y H:i", strtotime($o['processed_at'])); ?></div>
+                                            <?php echo date("d-m-Y H:i", strtotime($o['processed_at'])); ?>
+                                        </div>
                                     <?php endif; ?>
                                     <?php if (!empty($o['trashed_at'])): ?>
                                         <div class="order-date mt-1" style="color: #ef4444; font-weight: 600;"><i
                                                 class="fa fa-clock-o mr-1"></i>Xóa:
-                                            <?php echo date("d-m-Y H:i", strtotime($o['trashed_at'])); ?></div>
+                                            <?php echo date("d-m-Y H:i", strtotime($o['trashed_at'])); ?>
+                                        </div>
                                     <?php endif; ?>
                                 </td>
                                 <td>
@@ -550,36 +707,46 @@ if ($res_orders && $res_orders->num_rows > 0) {
                                         <?php echo nl2br(Security\h($o['items'])); ?>
                                     </div>
                                 </td>
-                                <td>
-                                    <em
-                                        style="color: #64748b; font-size: 0.9rem;"><?php echo empty($o['note']) ? "(Không ghi chú)" : htmlspecialchars($o['note']); ?></em>
+                                <td class="order-note-cell">
+                                    <?php if (!empty($o['note'])): ?>
+                                        <div class="order-note-container">
+                                            <div class="order-note-content js-expand-note" title="Nhấn để xem đầy đủ/thu gọn">
+                                                <?php echo nl2br(htmlspecialchars($o['note'])); ?>
+                                            </div>
+                                        </div>
+                                    <?php else: ?>
+                                        <i class="text-muted">Không có ghi chú</i>
+                                    <?php endif; ?>
                                 </td>
                                 <td class="text-center">
-                                    <?php
-                                    $csrf_token = Security\generate_csrf_token();
-                                    if ($view_mode == 'active'):
-                                        ?>
-                                        <?php if ($o['status'] == 'new'): ?>
-                                            <a href="?action=process&id=<?php echo $o['id']; ?>&token=<?php echo $csrf_token; ?>"
-                                                class="btn-action btn-process">
-                                                <i class="fa fa-check"></i> Đã chốt
+                                    <div class="mobile-actions-wrapper">
+                                        <?php
+                                        $csrf_token = Security\generate_csrf_token();
+                                        if ($view_mode == 'active'):
+                                            ?>
+                                            <?php if ($o['status'] == 'new'): ?>
+                                                <a href="?action=process&id=<?php echo $o['id']; ?>&token=<?php echo $csrf_token; ?>&name=<?php echo Security\u($o['customer_name']); ?>"
+                                                    class="btn-action btn-process">
+                                                    <i class="fa fa-check"></i> Chốt đơn
+                                                </a>
+                                            <?php endif; ?>
+                                            <a href="?action=trash&id=<?php echo $o['id']; ?>&token=<?php echo $csrf_token; ?>&name=<?php echo Security\u($o['customer_name']); ?>"
+                                                class="btn-action btn-delete">
+                                                <i class="fa fa-trash"></i> Bỏ đi
                                             </a>
+                                        <?php else: // Trash view ?>
+                                            <a href="?action=restore&id=<?php echo $o['id']; ?>&token=<?php echo $csrf_token; ?>&name=<?php echo Security\u($o['customer_name']); ?>"
+                                                class="btn-action btn-restore">
+                                                <i class="fa fa-refresh"></i> Khôi phục
+                                            </a>
+                                            <?php if (ADMIN_CAN_DELETE_ORDER): ?>
+                                                <a href="?action=delete&id=<?php echo $o['id']; ?>&token=<?php echo $csrf_token; ?>&name=<?php echo Security\u($o['customer_name']); ?>"
+                                                    class="btn-action btn-delete">
+                                                    <i class="fa fa-trash"></i> Hủy Diệt
+                                                </a>
+                                            <?php endif; ?>
                                         <?php endif; ?>
-                                        <a href="?action=trash&id=<?php echo $o['id']; ?>&token=<?php echo $csrf_token; ?>"
-                                            class="btn-action btn-delete">
-                                            <i class="fa fa-trash"></i> Bỏ đi
-                                        </a>
-                                    <?php else: // Trash view ?>
-                                        <a href="?action=restore&id=<?php echo $o['id']; ?>&token=<?php echo $csrf_token; ?>"
-                                            class="btn-action btn-restore" style="width: 100%;">
-                                            <i class="fa fa-refresh"></i> Khôi phục lại
-                                        </a>
-                                        <!-- TẠM ẨN NÚT HỦY DIỆT ĐỂ CHỜ HỆ THỐNG ROLE-BASED AUTH TRONG TƯƠNG LAI
-                                <a href="?action=delete&id=<?php echo $o['id']; ?>&token=<?php echo $csrf_token; ?>" class="btn-action btn-delete" onclick="return confirm('XÓA VĨNH VIỄN mất luôn dữ liệu đơn hàng! Bạn có chắc không?');">
-                                    <i class="fa fa-ban"></i> Hủy Diệt
-                                </a>
-                                -->
-                                    <?php endif; ?>
+                                    </div>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -602,7 +769,7 @@ if ($res_orders && $res_orders->num_rows > 0) {
         }, 3500);
 
         // Xử lý XÓA DANH MỤC
-        $(document).on('click', '.btndelprotype', function(e) {
+        $(document).on('click', '.btndelprotype', function (e) {
             e.preventDefault();
             var categoryName = $(this).val();
             if (confirm('Bạn có chắc chắn muốn XÓA TOÀN BỘ danh mục "' + categoryName + '" không?')) {
@@ -613,27 +780,73 @@ if ($res_orders && $res_orders->num_rows > 0) {
                         nameprotype: categoryName,
                         csrf_token: '<?php echo Security\generate_csrf_token(); ?>'
                     },
-                    success: function(response) {
+                    success: function (response) {
                         location.reload(); // Tải lại trang để cập nhật danh mục mới
                     }
                 });
             }
         });
 
+        // [MỚI] XỬ LÝ CLICK CÁC NÚT ACTION BẰNG AJAX (CHỐNG LẶP & MƯỢT MÀ)
+        $(document).on('click', '.btn-action', function (e) {
+            const url = $(this).attr('href');
+            const $btn = $(this);
+            const $row = $btn.closest('tr');
+
+            // Đối với nút XÓA VĨNH VIỄN vẫn cần confirm
+            if ($btn.hasClass('btn-delete') && url.includes('action=delete')) {
+                if (!confirm('XÓA VĨNH VIỄN mất luôn dữ liệu đơn hàng! Bạn có chắc không?')) return false;
+            }
+
+            e.preventDefault();
+
+            // Hi ứng Optimistic UI: Mờ dòng ngay lập tức
+            $row.css({ 'opacity': '0.3', 'pointer-events': 'none' });
+
+            $.ajax({
+                url: url,
+                type: 'GET',
+                dataType: 'json',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                success: function (res) {
+                    if (res.ok) {
+                        // Phản hồi mượt mà: Hi ứng FadeOut rồi mất hẳn
+                        $row.fadeOut(400, function () { $(this).remove(); });
+                    } else {
+                        alert('Lỗi: ' + (res.error || 'Thao tác thất bại'));
+                        $row.css({ 'opacity': '1', 'pointer-events': 'auto' });
+                    }
+                },
+                error: function () {
+                    alert('Lỗi kết nối máy chủ!');
+                    $row.css({ 'opacity': '1', 'pointer-events': 'auto' });
+                }
+            });
+        });
+
         // Cập nhật Real-time: Tự động tải lại phần nội dung đơn hàng mỗi 5 giây
         setInterval(function () {
+            // Chỉ tải lại nếu người dùng không đang thao tác
+            if ($('.btn-action[style*="opacity: 0.3"]').length > 0) return;
+
             $.ajax({
-                url: window.location.href, 
+                url: window.location.href,
                 type: 'GET',
-                cache: false, 
+                cache: false,
                 success: function (data) {
                     var newContent = $(data).find('.orders-container').html();
                     if (newContent) {
+                        // Tránh nạp lại gây giật khi người dùng đang cuộn
                         $('.orders-container').html(newContent);
                     }
                 }
             });
         }, 5000); // 5000 ms = 5 giây
+
+        // [MỚI] TÍNH NĂNG MỞ RỘNG GHI CHÚ KHI CLICK (Dùng Event Delegation cho Ajax)
+        $(document).on('click', '.js-expand-note', function() {
+            $(this).toggleClass('expanded');
+        });
     </script>
     <script>
         // TRUYỀN CSRF TOKEN TỪ PHP SANG JAVASCRIPT

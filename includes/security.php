@@ -7,6 +7,9 @@
 
 namespace Security;
 
+// THIẾT LẬP MÚI GIỜ HỆ THỐNG (VIỆT NAM)
+date_default_timezone_set('Asia/Ho_Chi_Minh');
+
 /**
  * CSFR PROTECTION (Chống Giả mạo yêu cầu từ phía Web khác)
  * ──────────────────────────────────────────────────
@@ -46,6 +49,16 @@ function h($string)
 }
 
 /**
+ * URL PARAMETER ENCODING (Chống vỡ URL)
+ * ───────────────────────────────────────────────────
+ * Sử dụng khi gắn biến vào tham số của URL (Query String).
+ */
+function u($string)
+{
+    return urlencode($string ?? '');
+}
+
+/**
  * PATH SANITIZATION (Chống Path Traversal)
  * ──────────────────────────────────────
  * Nguy cơ: Nếu Hacker gửi tham số t=../../config.php vào hàm xóa file, 
@@ -82,61 +95,72 @@ function notify_admin($message)
      * ─────────────────────────────────────────────────────────────────────────
      * LƯU Ý QUAN TRỌNG VỀ HOSTING MIỄN PHÍ (FREEHOSTIA / BYETHOST / ...)
      * ─────────────────────────────────────────────────────────────────────────
-     * Các Host free thường chặn yêu cầu gửi ra ngoài (Outbound Requests) 
-     * tới các dịch vụ như Telegram hoặc Google reCAPTCHA.
-     * Do đó, chúng ta chuyển sang dùng hàm mail() nội bộ của Server.
+     * Các Host free thường chặn yêu cầu gửi ra ngoài (Outbound Requests).
+     * Do đó, chúng ta KHÔNG DÙNG mail() hay gọi Telegram trực tiếp từ PHP.
+     * Thay vào đó, chúng ta dùng chiến thuật "Notification Bridge":
+     * PHP tạo Payload + Chữ ký HMAC -> Client (Browser) gửi sang Worker.
+     * ─────────────────────────────────────────────────────────────────────────
      */
 
-    // 1. [VÔ HIỆU HÓA TELEGRAM] - Tạm đóng do Host chặn kết nối ngoại vi.
+    // [TẠM KHÓA GỬI MAIL] - Vì Host bị cô lập Outbound hoàn toàn.
+    // Nếu sau này host mở cổng, bạn có thể bỏ comment đoạn dưới để dùng lại.
     /*
-    $token = defined('TELEGRAM_BOT_TOKEN') ? TELEGRAM_BOT_TOKEN : '';
-    $chat_id = defined('TELEGRAM_CHAT_ID') ? TELEGRAM_CHAT_ID : '';
-
-    if (!empty($token) && !empty($chat_id)) {
-        $url = "https://api.telegram.org/bot$token/sendMessage";
-        $data = [
-            'chat_id' => $chat_id,
-            'text' => $message,
-            'parse_mode' => 'HTML'
-        ];
-        // ... (phần code gửi bằng Curl hoặc file_get_contents)
-    }
-    */
-
-    // 2. [TRIỂN KHAI EMAIL] - Sử dụng hàm mail() chuẩn PHP.
     $to = defined('ADMIN_EMAIL') ? ADMIN_EMAIL : '';
     $from = defined('SENDER_EMAIL') ? SENDER_EMAIL : '';
 
     if (empty($to) || empty($from)) {
-        return false; // Chưa cấu hình Email thì bỏ qua
+        return false; 
     }
 
     $subject = "=?UTF-8?B?".base64_encode("Thông báo Đơn hàng mới: " . date("H:i"))."?=";
-    
-    // Header chuẩn để tránh rơi vào Spam và hỗ trợ Tiếng Việt
     $headers = "From: Mẫu Tranh CNC <" . $from . ">\r\n";
     $headers .= "Reply-To: " . $from . "\r\n";
     $headers .= "MIME-Version: 1.0\r\n";
     $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
     $headers .= "X-Mailer: PHP/" . phpversion();
 
-    // Gửi thư (Dùng @ để ẩn lỗi của server nếu hàm mail bị tắt)
     $sent = @mail($to, $subject, $message, $headers);
-
-    // -------------------------------------------------------------
-    // [CODE MỚI - LOG LỖI GỬI MAIL]
-    // -------------------------------------------------------------
-    // Mục tiêu: Nếu gửi mail thất bại, ghi lại vào log để Admin biết.
     if (!$sent) {
         $log_file = __DIR__ . '/../admin/logs/notif_error.log';
         $timestamp = date("Y-m-d H:i:s");
-        $log_msg = "[$timestamp] LỖI: Không thể gửi mail tới $to. Vui lòng kiểm tra lại cấu hình Hosting/Email.\n";
-        // Ghi vào file log (Dùng FILE_APPEND để không xóa các lỗi cũ)
+        $log_msg = "[$timestamp] LỖI: Không thể gọi mail() từ PHP.\n";
         @file_put_contents($log_file, $log_msg, FILE_APPEND);
     }
-    // -------------------------------------------------------------
-
     return $sent;
+    */
+
+    return true; // Trả về true để bỏ qua bước notification từ phía Server PHP
+}
+
+/**
+ * GENERATE SECURE NOTIF PAYLOAD (HMAC Signing)
+ * ──────────────────────────────────────────
+ * Mục tiêu: Tạo gói tin và chữ ký để trình duyệt khách hàng gửi Worker.
+ * Chống giả mạo: Worker sẽ kiểm tra lại chữ ký này bằng mã bí mật.
+ */
+function generate_notification_payload($message)
+{
+    $secret = getenv('WEBHOOK_SECRET') ?: '';
+    $url = getenv('NOTIFY_WEBHOOK_URL') ?: '';
+
+    if (empty($secret) || empty($url)) {
+        return null;
+    }
+
+    $timestamp = time();
+    $data_to_sign = json_encode([
+        'message' => $message,
+        'timestamp' => $timestamp
+    ], JSON_UNESCAPED_UNICODE);
+
+    // Tạo chữ ký HMAC-SHA256
+    $signature = hash_hmac('sha256', $data_to_sign, $secret);
+
+    return [
+        'payload' => $data_to_sign,
+        'signature' => $signature,
+        'url' => $url
+    ];
 }
 
 /**
@@ -226,7 +250,7 @@ function secure_session_start()
         ]);
 
         session_start();
-        
+
         // -------------------------------------------------------------
         // [CODE MỚI - QUẢN LÝ PHIÊN BẢN SESSION]
         // -------------------------------------------------------------
@@ -256,12 +280,12 @@ function secure_session_start()
         // 4. Content-Security-Policy (CSP): Lớp bảo mật mạnh mẽ nhất 
         // giúp ngăn chặn XSS bằng cách quy định rõ nguồn nạp Script/Style.
         header("Content-Security-Policy: default-src 'self'; " .
-            "script-src 'self' 'unsafe-inline' https://openseadragon.github.io https://maxcdn.bootstrapcdn.com https://fonts.googleapis.com https://www.google.com https://www.gstatic.com; " .
+            "script-src 'self' 'unsafe-inline' https://openseadragon.github.io https://maxcdn.bootstrapcdn.com https://fonts.googleapis.com https://www.google.com https://www.gstatic.com https://static.cloudflareinsights.com; " .
             "style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com https://fonts.googleapis.com https://www.google.com; " .
             "font-src 'self' https://maxcdn.bootstrapcdn.com https://fonts.gstatic.com; " .
             "img-src 'self' data: https://openseadragon.github.io https://www.google.com https://www.gstatic.com; " .
             "frame-src 'self' https://www.google.com; " .
-            "connect-src 'self' https://www.google.com https://www.gstatic.com;");
+            "connect-src 'self' https://www.google.com https://www.gstatic.com https://plain-term-3853.ngoquangvy97.workers.dev;");
 
         // -------------------------------------------------------------
     }

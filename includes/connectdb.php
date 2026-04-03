@@ -56,6 +56,9 @@ if ($link === false) {
 
 $link->set_charset("utf8mb4");
 
+// ĐỒNG BỘ MÚI GIỜ SQL VỚI VIỆT NAM (+07:00)
+$link->query("SET time_zone = '+07:00'");
+
 // Nạp thư viện bảo mật (Sử dụng đường dẫn tuyệt đối)
 require_once __DIR__ . "/security.php";
 
@@ -69,6 +72,8 @@ define('RECAPTCHA_ENABLED', getenv('RECAPTCHA_ENABLED') ?: 'true');
 // -------------------------------------------------------------
 // CẤU HÌNH THÔNG BÁO EMAIL (ADMIN NOTIFICATIONS)
 // -------------------------------------------------------------
+define('ADMIN_CAN_DELETE_ORDER', strtolower(getenv('ADMIN_CAN_DELETE_ORDER') ?: 'false') === 'true');
+
 // SENDER_EMAIL: Email theo tên miền của bạn (ví dụ: admin@mautranhcnc.com)
 // ADMIN_EMAIL: Email cá nhân nhận thông báo (ví dụ: abc@gmail.com)
 // -------------------------------------------------------------

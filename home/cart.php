@@ -12,18 +12,20 @@ $zalo_text = ""; // Khởi tạo biến để tránh lỗi Warning khi bị ch�
 // Bot thường gửi đơn ngay lập tức, con người sẽ mất ít nhất vài giây để điền.
 if ($_SERVER['REQUEST_METHOD'] == 'GET') {
     $_SESSION['cart_load_time'] = time();
+    // Tạo Token nạp đơn duy nhất để chống lặp đơn (Back button / Double click)
+    $_SESSION['order_submit_token'] = bin2hex(random_bytes(16));
 }
 // -------------------------------------------------------------
 
 // Xử lý Gửi Form Backend
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['customer_name'])) {
-    
+
     // -------------------------------------------------------------
     // GIẢI THÍCH BẢO MẬT: XÁC THỰC HAI LỚP (CSRF & reCAPTCHA)
     // -------------------------------------------------------------
     // 1. Chống Spam Bot: reCAPTCHA ngăn chặn việc gửi đơn hàng tự động.
     // 2. Chống CSRF: Đảm bảo dữ liệu chỉ được gửi từ chính form này.
-    
+
     $recaptcha_success = Security\verify_recaptcha($_POST['g-recaptcha-response'] ?? '');
     $csrf_success = Security\verify_csrf_token($_POST['csrf_token'] ?? '');
 
@@ -41,11 +43,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['customer_name'])) {
 
     // 2. Kiểm tra Time Trap (Bot nạp form quá nhanh < 3 giây)
     $load_time_session = $_SESSION['cart_load_time'] ?? 0;
-    $load_time_post = (int)($_POST['form_token_time'] ?? 0);
-    
+    $load_time_post = (int) ($_POST['form_token_time'] ?? 0);
+
     // Ưu tiên lấy thời gian lớn nhất (Gần nhất - Nghiêm ngặt nhất)
     $load_time = ($load_time_session > 0) ? max($load_time_session, $load_time_post) : $load_time_post;
-    
+
     $submit_duration = time() - $load_time;
     if ($submit_duration < 3) {
         $is_bot = true;
@@ -54,9 +56,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['customer_name'])) {
 
     // 3. Rate Limiting (Giới hạn tối thiểu giữa 2 lần nạp đơn để tránh DoS)
     $last_submit = $_SESSION['last_submit_time'] ?? 0;
-    
+
+    $submit_token_post = $_POST['submit_token'] ?? '';
+    $submit_token_session = $_SESSION['order_submit_token'] ?? '';
+    $is_duplicate = ($submit_token_post !== $submit_token_session || empty($submit_token_session));
+
     if (time() - $last_submit < 30) {
         $success_message = "<span style='color:orange;'>Bạn gửi đơn hơi nhanh. Vui lòng đợi 30 giây để tiếp tục nhé!</span>";
+    } elseif ($is_duplicate) {
+        // Nếu là đơn trùng (do nhấn back hoặc refresh cũ), chúng ta không báo lỗi mà chuyển hướng thẳng đến trang thành công của đơn trước đó.
+        if (isset($_SESSION['last_order_success'])) {
+            header("Location: cart.php?status=success&msg=already_done");
+            exit;
+        }
+        $success_message = "<span style='color:red;'>Lỗi: Mã bảo mật đơn hàng đã hết hạn hoặc đã được gửi.</span>";
     } elseif (!$csrf_success) {
         $success_message = "<span style='color:red;'>Lỗ: CSRF Token không hợp lệ. Vui lòng thử lại.</span>";
     } elseif (Security\is_recaptcha_enabled() && !$recaptcha_success) {
@@ -64,11 +77,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['customer_name'])) {
     } else {
         // [LUỒNG XỬ LÝ CHÍNH - LUÔN LƯU ĐƠN]
         $_SESSION['last_submit_time'] = time();
-        unset($_SESSION['cart_load_time']); 
-        
-        $name = Security\h(trim($_POST['customer_name']));
-        $phone = Security\h(trim($_POST['customer_phone']));
-        $note = Security\h(trim($_POST['order_note']));
+        unset($_SESSION['cart_load_time']);
+
+        $name = Security\h(mb_substr(trim($_POST['customer_name']), 0, 100));
+        $phone = Security\h(mb_substr(trim($_POST['customer_phone']), 0, 100));
+        $note = Security\h(mb_substr(trim($_POST['order_note']), 0, 500));
 
         // THỰC HIỆN "SILENT FLAGGING" - Đánh dấu nhưng không chặn
         if ($is_bot) {
@@ -86,7 +99,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['customer_name'])) {
         // ---------------------------------------------------------
         // Nguy cơ: Hacker có thể bypass form này để đặt hàng vô hạn 
         // và làm tràn bộ nhớ Telegram của Admin.
-        
+
         $name = Security\h(trim($_POST['customer_name']));
         $cart_data = isset($_POST['cart_data']) ? json_decode($_POST['cart_data'], true) : [];
         ... [Xử lý lưu và gửi Notify] ...
@@ -107,8 +120,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['customer_name'])) {
 
                     $zalo_text = "Chào Shop, tôi muốn đặt các mẫu CNC sau:\n";
                     foreach ($cart_data as $item) {
-                        $pid = (int)($item['id'] ?? 0);
-                        
+                        $pid = (int) ($item['id'] ?? 0);
+
                         $actual_name = "Sản phẩm không tồn tại";
                         // Truy vấn tên thật
                         $check_stmt->bind_param("i", $pid);
@@ -139,25 +152,51 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['customer_name'])) {
                     $tg_msg .= "👤 <b>Khách hàng:</b> $name\n";
                     $tg_msg .= "📞 <b>Số điện thoại:</b> $phone\n";
                     $tg_msg .= "📦 <b>Chi tiết:</b>\n" . $zalo_text;
-                    
+
                     // -------------------------------------------------------------
                     // CHIẾN LƯỢC BẢO MẬT MỀM (SILENT NOTIFICATION)
                     // -------------------------------------------------------------
                     // Chỉ gửi thông báo nếu KHÔNG bị nghi ngờ là Bot.
                     // Điều này giúp Inbox của bạn luôn sạch sẽ, đơn spam vẫn lưu để xem sau.
                     if (!$is_bot) {
-                         Security\notify_admin($tg_msg);
-                    } else {
-                        /* [DÀNH CHO LẬP TRÌNH VIÊN]
-                         * Mã cũ: Security\notify_admin($tg_msg); 
-                         * Đã đóng lại để bảo vệ Admin khỏi Spam Bot.
-                         */
+                        Security\notify_admin($tg_msg);
                     }
                     // -------------------------------------------------------------
+
+                    // [MỚI] CHỐNG LẶP ĐƠN HÀNG KHI REFRESH (PRG PATTERN)
+                    // Lưu thông tin vào Session để hiển thị sau khi chuyển hướng
+                    $_SESSION['last_order_success'] = [
+                        'id' => $order_id,
+                        'message' => $success_message,
+                        'zalo_text' => $zalo_text,
+                        'zalo_link' => $zalo_link,
+                        'tg_msg' => $tg_msg,
+                        'notif_payload' => Security\generate_notification_payload($tg_msg),
+                        'timestamp' => time()
+                    ];
+
+                    // [QUAN TRỌNG] HỦY TOKEN SAU KHI THÀNH CÔNG ĐỂ CHỐNG LẶP
+                    unset($_SESSION['order_submit_token']);
+
+                    header("Location: cart.php?status=success");
+                    exit;
                 }
                 $stmt->close();
             }
         }
+    }
+}
+
+// [MỚI] KIỂM TRA TRẠNG THÁI THÀNH CÔNG TỪ REDIRECT
+$order_show_success = false;
+if (isset($_GET['status']) && $_GET['status'] === 'success' && isset($_SESSION['last_order_success'])) {
+    // Kiểm tra tính hiệu lực của session (trong vòng 5 phút)
+    if (time() - $_SESSION['last_order_success']['timestamp'] < 300) {
+        $order_show_success = true;
+        $success_message = $_SESSION['last_order_success']['message'];
+        $zalo_text = $_SESSION['last_order_success']['zalo_text'];
+        $zalo_link = $_SESSION['last_order_success']['zalo_link'];
+        $notif_payload = $_SESSION['last_order_success']['notif_payload'];
     }
 }
 
@@ -386,11 +425,25 @@ if ($res_types && $res_types->num_rows > 0) {
 
         /* Responsive Mobile Tweak */
         @media (max-width: 768px) {
-            .success-box { padding: 20px 10px; }
-            .success-box i { font-size: 3.5rem; }
-            .success-box h2 { font-size: 1.6rem; }
-            .mobile-stack-btn { width: 100% !important; margin-top: 10px !important; padding: 12px !important; }
+            .success-box {
+                padding: 20px 10px;
+            }
+
+            .success-box i {
+                font-size: 3.5rem;
+            }
+
+            .success-box h2 {
+                font-size: 1.6rem;
+            }
+
+            .mobile-stack-btn {
+                width: 100% !important;
+                margin-top: 10px !important;
+                padding: 12px !important;
+            }
         }
+
         /* ─────────────────────────────────────────────────────────────
            BẢO MẬT: HONEYPOT CSS (Trường bẫy Bot)
            ───────────────────────────────────────────────────────────── */
@@ -428,12 +481,39 @@ if ($res_types && $res_types->num_rows > 0) {
     <div class="container cart-container">
         <div class="cart-card">
 
-            <?php if (!empty($success_message)): ?>
+            <?php if ($order_show_success): ?>
                 <!-- Đặt hàng thành công -->
                 <div class="success-box">
+                    <script>
+                        (function () {
+                            const data = <?php echo json_encode($notif_payload); ?>;
+                            const orderId = "<?php echo $_SESSION['last_order_success']['id']; ?>";
+
+                            // Chỉ gửi thông báo một lần duy nhất (dùng localStorage để đánh dấu)
+                            if (data && data.url && !localStorage.getItem('notif_sent_' + orderId)) {
+                                fetch(data.url, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'x-webhook-signature': data.signature
+                                    },
+                                    body: data.payload
+                                })
+                                    .then(async (res) => {
+                                        const text = await res.text();
+                                        if (!res.ok) throw new Error(text || ('HTTP ' + res.status));
+                                        localStorage.setItem('notif_sent_' + orderId, 'true');
+                                        return text;
+                                    })
+                                    .then(() => console.log('System: Order notification sent bridge successfully.'))
+                                    .catch(err => console.error('System: Notification bridge failed.', err));
+                            }
+                        })();
+                    </script>
                     <i class="fa fa-check-circle"></i>
                     <h2><?php echo $success_message; ?></h2>
-                    <p class="text-muted mt-2">Dữ liệu đơn hàng đã được lưu an toàn trên hệ thống của chúng tôi.</p>
+                    <p class="text-muted mt-2">Chúng tôi sẽ liên hệ với bạn sớm nhất qua số điện thoại/Zalo nếu có. Cảm ơn
+                        bạn đã đặt hàng!.</p>
 
                     <div class="text-left mt-4"
                         style="background: #f8f9fa; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; max-width: 600px; margin: 0 auto;">
@@ -442,9 +522,10 @@ if ($res_types && $res_types->num_rows > 0) {
                         <textarea id="zaloMessageText" class="form-control mb-3" rows="6" readonly
                             style="background: white; cursor: text;"><?php echo htmlspecialchars($zalo_text ?? '', ENT_QUOTES); ?></textarea>
 
-                        <div class="d-flex flex-column flex-md-row justify-content-center align-items-center" style="gap: 15px;">
-                            <button type="button" class="btn btn-outline-secondary mobile-stack-btn" onclick="copyZaloText()"
-                                style="font-weight: 600; border-radius: 10px; padding: 10px 25px;">
+                        <div class="d-flex flex-column flex-md-row justify-content-center align-items-center"
+                            style="gap: 15px;">
+                            <button type="button" class="btn btn-outline-secondary mobile-stack-btn"
+                                onclick="copyZaloText()" style="font-weight: 600; border-radius: 10px; padding: 10px 25px;">
                                 <i class="fa fa-copy mr-2"></i>Sao chép nội dung
                             </button>
                             <a href="<?php echo $zalo_link; ?>" target="_blank" class="btn-zalo mobile-stack-btn"
@@ -491,6 +572,10 @@ if ($res_types && $res_types->num_rows > 0) {
                         <!-- CSRF TOKEN (Bảo vệ khỏi việc gửi form giả mạo từ trang khác) -->
                         <input type="hidden" name="csrf_token" value="<?php echo Security\generate_csrf_token(); ?>">
 
+                        <!-- [MỚI] SUBMIT TOKEN (Chống lặp đơn khi nhấn Back / Double click) -->
+                        <input type="hidden" name="submit_token"
+                            value="<?php echo $_SESSION['order_submit_token'] ?? ''; ?>">
+
                         <!-- ─────────────────────────────────────────────────────────────
                              BẢO MẬT: HONEYPOT INPUT
                              ─────────────────────────────────────────────────────────────
@@ -510,27 +595,27 @@ if ($res_types && $res_types->num_rows > 0) {
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="small font-weight-bold text-muted">Họ và Tên</label>
-                                <input type="text" class="form-control" name="customer_name"
+                                <input type="text" class="form-control" name="customer_name" maxlength="100"
                                     placeholder="Nhập tên của bạn..." required>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="small font-weight-bold text-muted">Số điện thoại / Zalo</label>
-                                <input type="tel" class="form-control" name="customer_phone"
+                                <input type="tel" class="form-control" name="customer_phone" maxlength="100"
                                     placeholder="Số điện thoại nhận file..." required>
                             </div>
                         </div>
                         <div class="mb-3">
                             <label class="small font-weight-bold text-muted">Ghi chú (Kích thước, yêu cầu thêm...)</label>
-                            <textarea class="form-control" name="order_note" rows="3"
+                            <textarea class="form-control" name="order_note" rows="3" maxlength="500"
                                 placeholder="Ví dụ: Tôi cần mẫu này kích thước 1m2..."></textarea>
                         </div>
 
                         <!-- GOOGLE reCAPTCHA V2 Widget -->
                         <!-- Nhớ lấy SITE_KEY từ tệp .env -->
                         <?php if (Security\is_recaptcha_enabled()): ?>
-                        <div class="mb-4 d-flex justify-content-center">
-                            <div class="g-recaptcha" data-sitekey="<?php echo RECAPTCHA_SITE_KEY; ?>"></div>
-                        </div>
+                            <div class="mb-4 d-flex justify-content-center">
+                                <div class="g-recaptcha" data-sitekey="<?php echo RECAPTCHA_SITE_KEY; ?>"></div>
+                            </div>
                         <?php endif; ?>
 
                         <button type="submit" class="btn-submit">
