@@ -29,15 +29,28 @@ $result_fr1 = $stmt->get_result();
 
 if ($result_fr1 && ($result_fr1->num_rows > 0)) {
 
+    $atf_counter = 0;
     while ($row_fr1 = $result_fr1->fetch_assoc()) {
         $cleanName = Security\h($row_fr1["proname"]);
         $cleanType = Security\h($row_fr1["protype"]);
         $cleanDesc = Security\h($row_fr1["description"]);
+        
+        /* 
+           HEURISTIC SAFE RANGE (LIMIT 12):
+           Vì limit = 12, mỗi cột Masonry có 3 ảnh. Ta dùng dải an toàn [+1] quanh 
+           các index đầu cột (0, 3, 6, 9) để phủ kín vùng nhìn thấy ATF.
+        */
+        $atf_indices = [0, 1, 2, 3, 4, 6, 7, 9, 10];
+        $is_atf = in_array($atf_counter, $atf_indices);
+        $loading_attr = ($is_atf) ? "" : "loading=\"lazy\"";
+        $fetch_priority = ($atf_counter === 0) ? "fetchpriority=\"high\"" : "";
+        $atf_counter++;
+
         $show_product = $show_product . '
         <div class="product-item">
             <a href="../home/viewimg.php?id=' .  (int)$row_fr1["id"] . '">
                 <div class="img-container">
-                    <img src="imgs/' . Security\h($row_fr1["prourl"]) . '" alt="' . $cleanName . '" loading="lazy">
+                    <img src="imgs/' . Security\h($row_fr1["prourl"]) . '" alt="' . $cleanName . '" ' . $loading_attr . ' ' . $fetch_priority . '>
                 </div>
                 <div class="product-info">
                     <h5>' . $cleanName . '</h5>

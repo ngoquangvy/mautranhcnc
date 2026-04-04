@@ -152,7 +152,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['customer_name'])) {
                     $tg_msg .= "👤 <b>Khách hàng:</b> $name\n";
                     $tg_msg .= "📞 <b>Số điện thoại:</b> $phone\n";
                     $tg_msg .= "📦 <b>Chi tiết:</b>\n" . $zalo_text;
-
+                    $tg_msg .= "⏰ <b>Thời gian:</b> " . date("H:i d/m/Y") . "\n";
                     // -------------------------------------------------------------
                     // CHIẾN LƯỢC BẢO MẬT MỀM (SILENT NOTIFICATION)
                     // -------------------------------------------------------------

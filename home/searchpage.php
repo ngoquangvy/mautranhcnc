@@ -98,8 +98,19 @@ $result = $stmt->get_result();
 $show_product = "";
 // Check if any results were found
 if ($result->num_rows > 0) {
+    $atf_counter = 0;
     // Output data of each row
     while ($row = $result->fetch_assoc()) {
+        /* 
+           HEURISTIC SAFE RANGE (LIMIT 24):
+           Cụm Top mỗi cột Masonry (0, 6, 12, 18) kết hợp dải an toàn [+1, -1] 
+           để bắt được các ảnh Above The Fold bất kể trình duyệt tự cân bằng.
+        */
+        $atf_indices = [0, 1, 5, 6, 7, 11, 12, 13, 17, 18, 19];
+        $is_atf = in_array($atf_counter, $atf_indices);
+        $loading_attr = ($is_atf) ? "" : "loading=\"lazy\"";
+        $fetch_priority = ($atf_counter === 0) ? "fetchpriority=\"high\"" : "";
+        $atf_counter++;
         $cleanName = Security\h($row["proname"]);
         $cleanType = Security\h($row["protype"]);
         $cleanDesc = Security\h($row["description"]);
@@ -107,7 +118,7 @@ if ($result->num_rows > 0) {
         <div class="product-item">
             <a href="../home/viewimg.php?id=' .  (int)$row["id"] . '">
                 <div class="img-container">
-                    <img src="imgs/' . Security\h($row["prourl"]) . '" alt="' . $cleanName . '" loading="lazy">
+                    <img src="imgs/' . Security\h($row["prourl"]) . '" alt="' . $cleanName . '" ' . $loading_attr . ' ' . $fetch_priority . '>
                 </div>
                 <div class="product-info">
                     <h5>' . $cleanName . '</h5>

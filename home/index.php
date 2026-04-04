@@ -22,6 +22,7 @@ if ($cachedData) {
     $show_product = "";
     $sql_fr1 = "SELECT protype from products GROUP BY protype order by id DESC LIMIT $limit OFFSET $offset";
     $result_fr1 = $link->query($sql_fr1);
+    $atf_counter = 0;
     if (
         $result_fr1 && ($result_fr1->num_rows > 0)
     ) {
@@ -50,11 +51,24 @@ if ($cachedData) {
                 $cleanType = Security\h($row_fr["protype"]);
                 $cleanDesc = Security\h($row_fr["description"]);
                 
+                
+                /* 
+                   KỸ THUẬT TỐI ƯU HÓA LCP (HEURISTIC SAFE RANGE):
+                   Vì Masonry là layout động, trình duyệt có thể cân đối lại số lượng ảnh mỗi cột.
+                   Ta dùng "Dải an toàn" xung quanh các Index đầu cột (0, 6, 12, 18) để đảm bảo 
+                   luôn tải Eager cho ảnh đầu tiên của 4 cột bất kể trình duyệt lệch vị trí.
+                */
+                $atf_indices = [0, 1, 5, 6, 7, 11, 12, 13, 17, 18, 19];
+                $is_atf = in_array($atf_counter, $atf_indices);
+                $loading_attr = ($is_atf) ? "" : "loading=\"lazy\"";
+                $fetch_priority = ($atf_counter === 0) ? "fetchpriority=\"high\"" : "";
+                $atf_counter++;
+
                 $show_product = $show_product . '
                   <div class="product-item" value="' . $cleanType . '">
                       <a href="../home/protype.php?id=' .  urlencode($row_fr["protype"] ?? '') . '">
                           <div class="img-container">
-                              <img src="imgs/' . Security\h($row_fr["prourl"] ?? '') . '" alt="' . $cleanName . '" loading="lazy">
+                              <img src="imgs/' . Security\h($row_fr["prourl"] ?? '') . '" alt="' . $cleanName . '" ' . $loading_attr . ' ' . $fetch_priority . '>
                           </div>
                           <div class="product-info">
                               <h5>' . $cleanName . '</h5>
