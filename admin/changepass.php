@@ -79,7 +79,7 @@ $total_records = $total_res['total'];
 
 <body>
 
-    <?php include "../includes/sidebar_admin.php"; ?>
+    <?php include "sidebar_admin.php"; ?>
 
     <!-- Main Content -->
     <main class="admin-main">
