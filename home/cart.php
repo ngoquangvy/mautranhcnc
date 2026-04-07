@@ -2,7 +2,7 @@
 require_once "../includes/connectdb.php";
 require_once "../includes/config_site.php";
 require_once "../includes/security.php";
-// Sidebar Categories Logic (Populate $show_protype for header_site.php)
+// logic lấy danh mục sản phẩm để nạp vào Header (header_site.php cần biến $show_protype này)
 $show_protype = "";
 $sql_types = "SELECT protype FROM products GROUP BY protype";
 $res_types = $link->query($sql_types);
@@ -33,9 +33,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['customer_name'])) {
     $csrf_success = Security\verify_csrf_token($_POST['csrf_token'] ?? '');
     $is_bot = false;
     $bot_reason = "";
+    // LỚP 1: Honeypot - Nếu ô input ẩn này có dữ liệu -> Chắc chắn là Bot
     if (!empty($_POST['email_confirm_api'])) { $is_bot = true; $bot_reason = "Honeypot"; }
+    // LỚP 2: Time Trap - Nếu gửi đơn nhanh hơn 3 giây từ lúc load trang -> Nghi vấn Bot
     $load_time = $_SESSION['cart_load_time'] ?? (int)($_POST['form_token_time'] ?? 0);
     if (time() - $load_time < 3) { $is_bot = true; $bot_reason = "Time trap"; }
+    
     $last_submit = $_SESSION['last_submit_time'] ?? 0;
     $submit_token_post = $_POST['submit_token'] ?? '';
     $submit_token_session = $_SESSION['order_submit_token'] ?? '';
@@ -218,6 +221,16 @@ if (isset($_GET['status']) && $_GET['status'] === 'success' && isset($_SESSION['
                 </div>
                 
                 <script>
+                    /** 
+                     * BẢO MỆT FRONTEND: 
+                     * Hàm escapeHtml giúp ngăn chặn mã độc Javascript được nạp từ localStorage.
+                     */
+                    function escapeHtml(text) {
+                        const div = document.createElement('div');
+                        div.textContent = text;
+                        return div.innerHTML;
+                    }
+
                     function prepareCartData() { document.getElementById('cart_data_input').value = localStorage.getItem('mt_cart_v1'); }
                     function renderCartItems() {
                         const cart = JSON.parse(localStorage.getItem('mt_cart_v1') || '[]');
@@ -226,7 +239,10 @@ if (isset($_GET['status']) && $_GET['status'] === 'success' && isset($_SESSION['
                         if (cart.length === 0) { container.innerHTML = '<div class="text-center py-5">Giỏ hàng trống.</div>'; orderSection.style.display = 'none'; return; }
                         orderSection.style.display = 'block'; let html = '';
                         cart.forEach(item => {
-                            html += `<div class="cart-item"><img src="imgs/${item.image}" class="item-img"><div class="item-details"><h4 class="item-name">${item.name}</h4><span class="text-muted small">${item.type}</span></div><button type="button" class="btn-remove" onclick="removeFromCart('${item.id}')"><i class="fa fa-trash"></i></button></div>`;
+                            const name = escapeHtml(item.name);
+                            const type = escapeHtml(item.type);
+                            const img = escapeHtml(item.image);
+                            html += `<div class="cart-item"><img src="imgs/${img}" class="item-img"><div class="item-details"><h4 class="item-name">${name}</h4><span class="text-muted small">${type}</span></div><button type="button" class="btn-remove" onclick="removeFromCart('${escapeHtml(item.id)}')"><i class="fa fa-trash"></i></button></div>`;
                         });
                         container.innerHTML = html; updateCartCounter();
                     }

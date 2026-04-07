@@ -1,6 +1,13 @@
 <?php
 namespace Security;
 
+/**
+ * THƯ VIỆN BẢO MẬT TRUNG TÂM (Centralized Security Library)
+ * ────────────────────────────────────────────────────────
+ * File này chứa toàn bộ các logic bảo vệ cốt lõi của website.
+ * Mọi trang (admin & frontend) đều phải nạp file này qua connectdb.php.
+ */
+
 if (!defined('MT_CNC_AUTH'))
     exit('Access Denied');
 
@@ -142,6 +149,7 @@ function notify_admin($message)
  */
 function generate_notification_payload($message)
 {
+    // Lấy bí mật từ file .env để tạo chữ ký
     $secret = getenv('WEBHOOK_SECRET') ?: '';
     $url = getenv('NOTIFY_WEBHOOK_URL') ?: '';
 
@@ -155,7 +163,9 @@ function generate_notification_payload($message)
         'timestamp' => $timestamp
     ], JSON_UNESCAPED_UNICODE);
 
-    // Tạo chữ ký HMAC-SHA256
+    // [BẢO MẬT] Sử dụng HMAC-SHA256 để ký gói tin.
+    // Việc này đảm bảo chỉ website của bạn mới có quyền gửi dữ liệu cho Worker.
+    // Worker sẽ kiểm tra chữ ký này bằng cùng một WEBHOOK_SECRET.
     $signature = hash_hmac('sha256', $data_to_sign, $secret);
 
     return [
@@ -244,7 +254,7 @@ function secure_session_start()
 
         session_set_cookie_params([
             'lifetime' => 0,
-            'path' => '/',
+            'path' => '/', // Cookie khả dụng trên toàn bộ thư mục (bao gồm cả /admin)
             'domain' => '',
             'secure' => $secure,
             'httponly' => $httponly,

@@ -1,8 +1,9 @@
 <?php
 /**
- * Centralized Admin Sidebar
- * Handles branding, navigation, and category listing.
- * Moved to admin/ for better modularity.
+ * SIDEBAR QUẢN TRỊ TRUNG TÂM (Centralized Admin Sidebar)
+ * ──────────────────────────────────────────────────
+ * Quản lý toàn bộ thanh menu bên trái của trang Admin.
+ * Bao gồm: Logo, Nút bật/tắt Cache, Menu điều hướng chính và Danh mục sản phẩm.
  */
 
 // 1. Determine local pathing for links (default to admin root)
@@ -32,9 +33,9 @@ if ($result_sidebar_types) {
     }
 }
 
-// 3. Cache Status
+// 3. Quản lý Cache (FileCache)
+// Kiểm tra xem hệ thống Cache có đang bật hay không để hiển thị công tắc.
 if (!isset($cacheEnabled)) {
-    // Relative to this file (admin/sidebar_admin.php), cache.php is in ../includes/
     require_once dirname(__DIR__) . "/includes/cache.php";
     $cacheEnabled = FileCache::isEnabled();
 }
@@ -94,7 +95,11 @@ if (!isset($cacheEnabled)) {
 
             <div class="nav-group-title mt-4">Danh mục sản phẩm</div>
             <ul class="category-list">
-                <?php echo $show_protype; ?>
+                <?php 
+                // Biến $show_protype ở đây chứa danh sách <li> lọc từ bảng Products
+                // Giúp Admin click nhanh vào từng loại sản phẩm.
+                echo $show_protype; 
+                ?>
             </ul>
         </div>
     </div>
