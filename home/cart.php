@@ -52,9 +52,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['customer_name'])) {
         $success_message = "<span style='color:red;'>Lỗi: CSRF Token không hợp lệ.</span>";
     } else {
         $_SESSION['last_submit_time'] = time();
-        $name = Security\h(mb_substr(trim($_POST['customer_name']), 0, 100));
-        $phone = Security\h(mb_substr(trim($_POST['customer_phone']), 0, 100));
-        $note = Security\h(mb_substr(trim($_POST['order_note']), 0, 500));
+        $name = Security\h(mb_substr(trim($_POST['customer_name']), 0, 20));
+        $phone = trim($_POST['customer_phone']);
+        $note = Security\h(mb_substr(trim($_POST['order_note']), 0, 200));
+
+        // KIỂM TRA DỮ LIỆU ĐẦU VÀO (Backend Validation)
+        // Tên: tối đa 20 ký tự, không được rỗng
+        if (empty($name) || mb_strlen($name) < 1) {
+            $success_message = "<span style='color:red;'>Vui lòng nhập họ tên.</span>";
+        // SĐT: chỉ chấp nhận số, dấu + ở đầu, khoảng trắng, gạch ngang (7-15 số)
+        } elseif (!preg_match('/^\+?[\d\s\-]{7,15}$/', $phone)) {
+            $success_message = "<span style='color:red;'>Số điện thoại không hợp lệ (7-15 chữ số).</span>";
+        } else {
+        $phone = Security\h(mb_substr($phone, 0, 20));
         if ($is_bot) { $note = "[Hệ thống: Bot ($bot_reason)] " . ($note ?? ''); }
         $cart_data = isset($_POST['cart_data']) ? json_decode($_POST['cart_data'], true) : [];
         if ($cart_data && is_array($cart_data)) {
@@ -75,8 +85,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['customer_name'])) {
                         $ztel .= "- $pname (Mã: $pid)\n";
                     }
                     $ztel .= "\nNgười đặt: $name ($phone)";
+                    if (!empty($note)) { $ztel .= "\nGhi chú: $note"; }
+                    $order_time = date("H:i d/m/Y");
                     $zlink = "https://zalo.me/0338790560?text=" . rawurlencode($ztel);
-                    $tg_msg = "<b>🔔 ĐƠN MỚI #$order_id</b>\n👤 $name\n📞 $phone\n" . $ztel;
+                    $tg_msg = "<b>🔔 ĐƠN MỚI #$order_id</b>\n👤 $name\n📞 $phone\n" . $ztel . "\n⏰ Thời gian: $order_time";
                     if (!$is_bot) { Security\notify_admin($tg_msg); }
                     
                     // Generate payload for the notification bridge
@@ -97,6 +109,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['customer_name'])) {
                 }
             }
         }
+        } // đóng ngoặc else của validation
     }
 }
 
@@ -212,10 +225,10 @@ if (isset($_GET['status']) && $_GET['status'] === 'success' && isset($_SESSION['
                         <div class="hp-field"><input type="text" name="email_confirm_api"></div>
                         <input type="hidden" name="form_token_time" value="<?php echo time(); ?>">
                         <div class="row">
-                            <div class="col-md-6 mb-3"><label class="small font-weight-bold">Họ Tên</label><input type="text" class="form-control" name="customer_name" required></div>
-                            <div class="col-md-6 mb-3"><label class="small font-weight-bold">Số điện thoại</label><input type="tel" class="form-control" name="customer_phone" required></div>
+                            <div class="col-md-6 mb-3"><label class="small font-weight-bold">Họ Tên <small class="text-muted">(tối đa 20 ký tự)</small></label><input type="text" class="form-control" name="customer_name" maxlength="20" required></div>
+                            <div class="col-md-6 mb-3"><label class="small font-weight-bold">Số điện thoại</label><input type="tel" class="form-control" name="customer_phone" maxlength="15" pattern="\+?[\d\s\-]{7,15}" title="Nhập 7-15 chữ số (VD: 0338790560 hoặc +84338790560)" required></div>
                         </div>
-                        <div class="mb-3"><label class="small font-weight-bold">Ghi chú</label><textarea class="form-control" name="order_note" rows="3"></textarea></div>
+                        <div class="mb-3"><label class="small font-weight-bold">Ghi chú <small class="text-muted">(tối đa 200 ký tự)</small></label><textarea class="form-control" name="order_note" rows="3" maxlength="200"></textarea></div>
                         <button type="submit" class="btn-submit">Chốt đơn hàng & Nhận báo giá</button>
                     </form>
                 </div>
