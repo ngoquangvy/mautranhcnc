@@ -1,4 +1,25 @@
 <?php
+/**
+ * XÓA SẢN PHẨM (Admin Only)
+ * ──────────────────────────────────────────────────
+ * 
+ * QUY TRÌNH XÓA AN TOÀN ("Database First"):
+ * ─────────────────────────────────────────
+ *   Bước 1: Kiểm tra CSRF Token → Chống tấn công giả mạo
+ *   Bước 2: Làm sạch tên file  → Chống Path Traversal (../../)
+ *   Bước 3: Xóa bản ghi trong Database TRƯỚC
+ *   Bước 4: CHỈ KHI Database xóa thành công → Mới xóa file ảnh vật lý
+ *
+ * TẠI SAO PHẢI XÓA DB TRƯỚC?
+ * ───────────────────────────
+ *   Nếu xóa file trước rồi DB lỗi → Khách hàng sẽ thấy "Ảnh vỡ" (broken image)
+ *   Nếu xóa DB trước rồi file lỗi → Ảnh chỉ thành "ảnh rác" (dọn sau bằng cleanup_orphans.php)
+ *   → Kết luận: Thà có ảnh rác trên server, còn hơn để khách thấy ảnh vỡ!
+ *
+ * ĐƯỢC GỌI TỪ:
+ *   admin.php / protype.php → JavaScript AJAX gọi qua GET
+ *   URL: deletepd.php?t=<tên_file_ảnh>&token=<csrf_token>
+ */
 require_once "../includes/connectdb.php";
 
 if (isset($_SESSION['id'])) {

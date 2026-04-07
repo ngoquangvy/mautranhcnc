@@ -6,36 +6,75 @@ require_once "../includes/security.php";
 if (!defined('MT_CNC_AUTH')) define('MT_CNC_AUTH', true);
 
 /**
- * CÔNG CỤ DỌN DẸP ẢNH RÁC (Developer Only)
- * ──────────────────────────────────────
- * Chế độ 1: Liệt kê (Mặc định) -> Thêm ?key=MẬT_MÃ_CỦA_BẠN
- * Chế độ 2: Xóa thực sự -> Thêm ?key=MẬT_MÃ_CỦA_BẠN&confirm=true
+ * ╔══════════════════════════════════════════════════════════════╗
+ * ║        CÔNG CỤ DỌN DẸP ẢNH RÁC (Developer Only)          ║
+ * ╠══════════════════════════════════════════════════════════════╣
+ * ║                                                              ║
+ * ║  MỤC ĐÍCH:                                                   ║
+ * ║  Quét thư mục /home/imgs/ và so sánh với bảng `products`    ║
+ * ║  trong Database. Nếu ảnh tồn tại trên ổ cứng nhưng KHÔNG   ║
+ * ║  có bản ghi nào trong DB, thì đó là "ảnh mồ côi" (orphan). ║
+ * ║                                                              ║
+ * ║  NGUYÊN NHÂN SINH ẢNH MỒ CÔI:                              ║
+ * ║  1. Admin xóa dữ liệu trực tiếp trong phpMyAdmin            ║
+ * ║  2. Upload bị timeout giữa chừng (ảnh đã lưu, DB chưa ghi) ║
+ * ║  3. Restore backup DB cũ nhưng ảnh mới vẫn còn trên server  ║
+ * ║                                                              ║
+ * ║  CÁCH SỬ DỤNG:                                               ║
+ * ║  ─────────────────────────────────────────────────            ║
+ * ║  Chế độ 1 — CHỈ XEM (An toàn, mặc định):                    ║
+ * ║    URL: cleanup_orphans.php?key=<MẬT_MÃ_TRONG_.ENV>         ║
+ * ║    → Trả về danh sách JSON các ảnh rác, KHÔNG xóa gì cả.   ║
+ * ║                                                              ║
+ * ║  Chế độ 2 — XÓA THỰC SỰ (Cần xác nhận):                    ║
+ * ║    URL: cleanup_orphans.php?key=<MẬT_MÃ>&confirm=true       ║
+ * ║    → Xóa vĩnh viễn các ảnh mồ côi khỏi server.             ║
+ * ║                                                              ║
+ * ║  BẢO MẬT:                                                    ║
+ * ║  • Yêu cầu Session Admin hợp lệ (đã đăng nhập)             ║
+ * ║  • Yêu cầu Chìa khóa Dev (DEV_CLEANUP_KEY trong .env)       ║
+ * ║  • Mọi truy cập đều được ghi log tại admin/logs/security.log║
+ * ║  • Các file hệ thống (.htaccess, logo...) LUÔN được bảo vệ  ║
+ * ║                                                              ║
+ * ╚══════════════════════════════════════════════════════════════╝
  */
 
-// 1. KIỂM TRA CHÌA KHÓA DEV (Từ file .env)
+// ═══════════════════════════════════════════════════════════
+// BƯỚC 1: KIỂM TRA CHÌA KHÓA DEV (Từ file .env)
+// ═══════════════════════════════════════════════════════════
+// Đọc biến DEV_CLEANUP_KEY từ .env (được nạp bởi connectdb.php)
+// Nếu URL không chứa ?key=... hoặc key sai → Trả 403 Forbidden
 $dev_key = getenv('DEV_CLEANUP_KEY') ?: '';
 $provided_key = $_GET['key'] ?? '';
 
-// Ghi nhật ký truy cập (Audit Log)
+// Ghi nhật ký truy cập (Audit Log) — Ghi CẢ thành công lẫn thất bại
 $log_file = __DIR__ . '/logs/security.log';
 $timestamp = date("Y-m-d H:i:s");
 $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
 $log_msg = "[$timestamp] [CLEANUP] Access Attempt: IP=$ip, Key=" . ($provided_key === $dev_key ? 'MATCH' : 'DENIED') . ", Confirm=" . ($_GET['confirm'] ?? 'false') . "\n";
 @file_put_contents($log_file, $log_msg, FILE_APPEND);
 
-// Chặn nếu sai mã hoặc chưa cấu hình mã
+// Chặn nếu sai mã hoặc chưa cấu hình mã trong .env
 if (empty($dev_key) || $provided_key !== $dev_key) {
     header('HTTP/1.0 403 Forbidden');
     echo json_encode(["status" => "error", "message" => "Access Denied. Secret Key required."], JSON_PRETTY_PRINT);
     exit;
 }
 
+// ═══════════════════════════════════════════════════════════
+// BƯỚC 2: KIỂM TRA PHIÊN ADMIN
+// ═══════════════════════════════════════════════════════════
 if (!isset($_SESSION['id'])) {
     die("Unauthorized (Session expired)");
 }
 
+// ═══════════════════════════════════════════════════════════
+// BƯỚC 3: CẤU HÌNH QUÉT
+// ═══════════════════════════════════════════════════════════
 $upload_dir = "../home/imgs/";
+// Danh sách file TUYỆT ĐỐI KHÔNG ĐƯỢC XÓA (dù không có trong DB)
 $system_files = ['.htaccess', 'logo', 'logo_watermark.png', '.', '..'];
+// Chỉ xóa thực sự khi URL có tham số &confirm=true
 $confirm_delete = (isset($_GET['confirm']) && $_GET['confirm'] === 'true');
 
 // 1. Lấy danh sách ảnh đang dùng trong Database

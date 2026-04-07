@@ -1,4 +1,40 @@
 <?php
+/**
+ * TẢI LÊN SẢN PHẨM MỚI (Admin Only)
+ * ──────────────────────────────────────────────────
+ *
+ * QUY TRÌNH XỬ LÝ:
+ * ─────────────────
+ *   Bước 1: Nhận file ảnh từ Frontend (đã nén xuống ≤500KB bởi lossy-compression.js)
+ *   Bước 2: Kiểm tra bảo mật (CSRF Token, MIME Type, kích thước pixel)
+ *   Bước 3: Lưu file vào thư mục /home/imgs/
+ *   Bước 4: Đóng dấu Watermark lên ảnh (logo + text)
+ *   Bước 5: Ghi thông tin vào Database (nếu lỗi → tự xóa file ở Bước 3)
+ *
+ * CƠ CHẾ DYNAMIC TIMEOUT:
+ * ──────────────────────────
+ *   Thời gian xử lý = (Số lượng ảnh × 15 giây) + 60 giây đệm
+ *   Ví dụ: 20 ảnh = 20×15 + 60 = 360 giây (6 phút)
+ *   Mặc định PHP chỉ cho 30 giây → Nếu không nâng sẽ bị timeout giữa chừng
+ *
+ * CƠ CHẾ OUTPUT BUFFER (ob_start):
+ * ────────────────────────────────
+ *   Khi connectdb.php nạp security.php, các header bảo mật (CSP, X-Frame-Options)
+ *   có thể in ra khoảng trắng hoặc dấu xuống dòng trước khi response JSON.
+ *   ob_start() bắt toàn bộ output, ob_clean() xóa sạch trước khi gửi JSON.
+ *
+ * GIỚI HẠN SERVER (cấu hình trong Dockerfile → admin-upload.ini):
+ * ───────────────────────────────────────────────────────────────
+ *   max_file_uploads = 100    (tối đa 100 ảnh/lần)
+ *   upload_max_filesize = 50M (mỗi ảnh tối đa 50MB)
+ *   post_max_size = 512M      (tổng request tối đa 512MB)
+ *   memory_limit = 256M       (RAM cho PHP xử lý ảnh)
+ *
+ * ĐƯỢC GỌI TỪ:
+ *   admin/addproduct/lossy-compression.js → XMLHttpRequest (POST)
+ *   Có thanh tiến trình (Progress Bar) hiển thị % tải lên real-time
+ */
+
 // Bắt đầu buffer output - chặn bất kỳ output nào từ connectdb/security
 // tránh làm hỏng response JSON (lỗi "Phản hồi từ máy chủ không hợp lệ")
 ob_start();
