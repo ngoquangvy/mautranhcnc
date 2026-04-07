@@ -211,8 +211,6 @@ $(document).ready(function () {
   });
 
   // --- MOBILE POPUP MENU LOGIC ---
-  
-  // Hàm phụ để chỉ đóng Menu nếu nó đang mở (Modal)
   function closeNavbarIfOpen() {
     if ($('#menuModal').hasClass('show')) {
       $('#menuModal').modal('hide');
@@ -229,15 +227,15 @@ $(document).ready(function () {
     closeNavbarIfOpen();
   });
 
-  // Tự động đóng Navbar khi click ra ngoài vùng Menu (Mobile UX)
-  $(document).on('click', function (event) {
-    const clickOver = $(event.target);
-    const navbar = $('#navbarsExampleDefault');
-    const opened = navbar.hasClass('show');
-    
-    if (opened === true && !clickOver.closest('.navbar').length) {
-      $('#btnhide').click();
-    }
+  // Manual Trigger for Mobile Menu (Force open if data-attributes fail)
+  $('#btnhide').on('click', function(e) {
+    e.preventDefault();
+    $('#menuModal').modal('show');
+  });
+
+  // Force Close Modal on dismiss button click
+  $(document).on('click', '[data-dismiss="modal"]', function() {
+    $(this).closest('.modal').modal('hide');
   });
 
   // --- PREMIUM HEADER LOGIC ---

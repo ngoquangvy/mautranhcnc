@@ -28,3 +28,8 @@ Options -Indexes
         Deny from all
     </IfModule>
 </FilesMatch>
+
+# 4. CHẶN TRUY CẬP THƯ MỤC NỘI BỘ (INTERNAL FOLDER PROTECTION)
+# Chặn hoàn toàn việc truy cập trực tiếp vào các thư mục mã nguồn.
+RewriteEngine On
+RewriteRule ^includes/.*$ - [F,L]

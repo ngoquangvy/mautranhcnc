@@ -28,23 +28,46 @@ body {
     background: var(--sidebar-bg);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    color: #f8fafc;
+    color: rgba(255, 255, 255, 0.5);
     position: fixed;
     border-right: 1px solid rgba(255, 255, 255, 0.1);
     z-index: 1000;
+    padding-left: 10px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* Custom Scrollbar for Admin Sidebar */
+.admin-sidebar::-webkit-scrollbar {
+    width: 5px;
+}
+
+.admin-sidebar::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.admin-sidebar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}
+
+.admin-sidebar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
 }
 
 .sidebar-header {
-    padding: 40px 20px;
-    text-align: center;
+    padding: 50px 30px 40px 30px;
+    /* More generous top and side padding */
+    text-align: left;
+    /* Switched to left align for a more professional dashboard look */
 }
 
 .sidebar-header h2 {
-    font-size: 20px;
-    font-weight: 800;
-    letter-spacing: 1.5px;
-    margin-top: 10px;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    margin-top: 15px;
+    color: #fff;
 }
 
 .sidebar-nav ul {
@@ -55,10 +78,11 @@ body {
 .sidebar-nav ul li a {
     display: flex;
     align-items: center;
-    padding: 14px 28px;
+    padding: 12px 35px;
+    /* Increased left padding for a cleaner gutter */
     color: #94a3b8;
     text-decoration: none;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     font-weight: 500;
     transition: var(--transition);
     border-left: 4px solid transparent;
@@ -66,16 +90,86 @@ body {
 
 .sidebar-nav ul li a:hover,
 .sidebar-nav ul li a.active {
-    color: white;
+    color: #fff;
     background: rgba(255, 255, 255, 0.05);
     border-left-color: var(--accent-emerald);
 }
 
+/* Sidebar Group Titles */
+.nav-group-title {
+    padding: 25px 35px 10px 35px;
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(148, 163, 184, 0.4); /* Faded color */
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    transition: var(--transition);
+}
+
+/* Category List & Sidebar Items */
+.category-list {
+    list-style: none;
+    padding: 0 !important;
+    margin: 0;
+}
+
+.sidebar-category-item {
+    padding: 8px 35px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: var(--transition);
+}
+
+.sidebar-category-item a {
+    color: rgba(148, 163, 184, 0.6); /* Muted by default */
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: var(--transition);
+    padding: 0 !important;
+    border: none !important;
+}
+
+.sidebar-category-item .btndelprotype {
+    color: var(--danger-rose);
+    opacity: 0; /* Hidden by default (desktop) */
+    transition: var(--transition);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px 10px;
+}
+
+.sidebar-category-item:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.sidebar-category-item.active-category {
+    background: rgba(255, 255, 255, 0.05);
+    border-left: 2px solid var(--accent-emerald);
+}
+
+.sidebar-category-item:hover a,
+.sidebar-category-item.active-category a {
+    color: #fff;
+}
+
+.sidebar-category-item:hover .btndelprotype {
+    opacity: 0.5; /* Fade in trash icon on hover */
+}
+
+.sidebar-category-item .btndelprotype:hover {
+    opacity: 1 !important;
+    transform: scale(1.1);
+    color: #ff7675 !important;
+}
+
 /* Cache Switch Styling */
 .cache-switch-container {
-    padding: 20px 28px;
-    background: rgba(0, 0, 0, 0.2);
-    margin: 10px 20px;
+    padding: 18px 25px;
+    background: rgba(0, 0, 0, 0.15);
+    margin: 10px 25px;
     border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.05);
 }
@@ -345,62 +439,38 @@ input:checked+.slider:before {
 .category-list {
     padding: 0 10px !important;
     list-style: none;
-    max-height: calc(100vh - 480px); /* Giới hạn chiều cao */
-    overflow-y: auto; /* Hiện thanh cuộn khi cần */
+    max-height: calc(100vh - 350px);
+    /* Giới hạn chiều cao */
+    overflow-y: auto;
+    /* Hiện thanh cuộn khi cần */
     overflow-x: hidden;
 }
 
 /* Tùy chỉnh thanh cuộn cho mỏng và đẹp hơn */
 .category-list::-webkit-scrollbar {
-    width: 4px;
+    width: 5px;
 }
+
 .category-list::-webkit-scrollbar-track {
     background: rgba(255, 255, 255, 0.02);
 }
+
 .category-list::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.1);
     border-radius: 10px;
 }
+
 .category-list::-webkit-scrollbar-thumb:hover {
-    background: var(--accent-emerald);
+    background: rgba(255, 255, 255, 0.3);
 }
 
 .category-list li {
-    margin-bottom: 2px; /* Giảm khoảng cách giữa các hàng */
+    margin-bottom: 2px;
+    /* Giảm khoảng cách giữa các hàng */
     border-radius: 8px;
     display: flex;
     align-items: center;
     transition: var(--transition);
-}
-
-.category-list li a {
-    padding: 8px 15px !important; /* Giảm padding để danh sách mỏng lại */
-    font-size: 0.8rem !important;
-    border-left: none !important;
-    flex-grow: 1;
-}
-
-.category-list li:hover {
-    background: rgba(255, 255, 255, 0.05);
-}
-
-.btndelprotype {
-    color: var(--danger-rose);
-    opacity: 0; /* Ẩn mặc định, hiện khi hover */
-    transition: var(--transition);
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 4px 10px;
-}
-
-.category-list li:hover .btndelprotype {
-    opacity: 0.6;
-}
-
-.btndelprotype:hover {
-    opacity: 1 !important;
-    transform: scale(1.1);
 }
 
 /* Pagination Premium */
@@ -494,8 +564,9 @@ input:checked+.slider:before {
     .sidebar-header p,
     .nav-group-title,
     .sidebar-nav span,
-    .cache-switch-container {
-        display: none;
+    .cache-switch-container,
+    .btndelprotype {
+        display: none !important;
     }
 
     .admin-main {
@@ -503,4 +574,87 @@ input:checked+.slider:before {
         width: calc(100% - 100px);
         padding: 40px;
     }
+}
+
+@media (max-width: 768px) {
+    .admin-sidebar {
+        display: none !important;
+    }
+
+    .admin-main {
+        margin-left: 0 !important;
+        width: 100% !important;
+        padding: 15px !important;
+    }
+}
+
+/* --------------------------------------------------------- */
+/* ADD PRODUCT PAGE STYLES (Deduplicated)                    */
+/* --------------------------------------------------------- */
+.upload-zone {
+    background: #fff;
+    border: 2px dashed #e2e8f0;
+    border-radius: 16px;
+    padding: 60px;
+    text-align: center;
+    transition: var(--transition);
+    margin-bottom: 30px;
+    cursor: pointer;
+}
+
+.upload-zone:hover {
+    border-color: var(--accent-blue);
+    background: rgba(59, 130, 246, 0.02);
+}
+
+.compressedImagesList {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 25px;
+    list-style: none;
+    padding: 0;
+    margin-top: 30px;
+}
+
+.compressedImagesList li {
+    background: #fff;
+    padding: 12px;
+    border-radius: 14px;
+    box-shadow: var(--card-shadow);
+    position: relative;
+    text-align: center;
+}
+
+.compressedImagesList li img {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+    border-radius: 10px;
+    margin-bottom: 12px;
+}
+
+.remove-button {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    background: var(--danger-rose);
+    color: #fff;
+    border: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(244, 63, 94, 0.3);
+}
+
+#uploadButton {
+    width: 100%;
+    padding: 18px;
+    font-weight: 700;
+    border-radius: 14px;
+    transition: var(--transition);
 }

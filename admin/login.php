@@ -5,6 +5,9 @@
 // }
 // Include config file
 require_once "../includes/connectdb.php";
+require_once "../includes/config_site.php";
+if (!defined('SITE_LOGO_PREFIX')) define('SITE_LOGO_PREFIX', '../home/');
+
 
 
 // -------------------------------------------------------------
@@ -132,8 +135,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 	<meta charset="UTF-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>ADMIN Login</title>
-  <link rel="shortcut icon" href="imgs/logo/logomt.jpg">
+	<title><?php echo SITE_NAME; ?> - Đăng nhập Quản trị</title>
+  <link rel="shortcut icon" href="<?php echo SITE_LOGO_PREFIX . SITE_LOGO; ?>">
   <script src="../home/js/jquery.js"></script>
   <link href="../home/css/bootstrap.min.css" rel="stylesheet">
   <script src="../home/js/bootstrap.min.js"></script>

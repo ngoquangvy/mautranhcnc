@@ -1,6 +1,8 @@
 <?php
 require_once "../includes/connectdb.php";
+require_once "../includes/config_site.php";
 require_once "../includes/cache.php";
+if (!defined('SITE_LOGO_PREFIX')) define('SITE_LOGO_PREFIX', '../home/');
 
 $cacheEnabled = FileCache::isEnabled();
 
@@ -81,22 +83,15 @@ $view_mode = isset($_GET['view']) && $_GET['view'] === 'trash' ? 'trash' : 'acti
 
 
 // Danh mục Sidebar
-$show_protype = "";
-$sql_types = "SELECT protype, COUNT(*) as count FROM products GROUP BY protype ORDER BY protype ASC";
-$result_types = $link->query($sql_types);
-if ($result_types) {
-    while ($type_row = $result_types->fetch_assoc()) {
-        $show_protype .= '
-        <li class="sidebar-category-item d-flex align-items-center justify-content-between">
-            <a href="../admin/protype.php?id=' . urlencode($type_row["protype"]) . '" class="flex-grow-1">
-                <span>' . htmlspecialchars($type_row["protype"]) . ' (' . $type_row["count"] . ')</span>
-            </a>
-            <button type="button" class="btn btn-link btn-sm text-danger btndelprotype p-0 ml-2" value="' . htmlspecialchars($type_row["protype"]) . '" title="Xóa danh mục">
-                <i class="fa fa-trash"></i>
-            </button>
-        </li>';
-    }
-}
+// Includes moved to sidebar or handled globally
+require_once "../includes/config_site.php";
+require_once "../includes/cache.php";
+if (!defined('SITE_LOGO_PREFIX')) define('SITE_LOGO_PREFIX', '../home/');
+$cacheEnabled = FileCache::isEnabled();
+
+// Re-added for stats compatibility
+$sql_types_count = "SELECT COUNT(DISTINCT protype) as total FROM products";
+$total_types = $link->query($sql_types_count)->fetch_assoc()['total'];
 
 // Lấy danh sách 100 đơn hàng mới nhất tùy view_mode
 $orders = [];
@@ -134,12 +129,12 @@ $c_trash = $link->query("SELECT COUNT(*) FROM orders WHERE status = 'trashed'")-
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quản lý Đơn hàng | Admin Mẫu CNC</title>
-    <link rel="shortcut icon" href="../home/imgs/logo/mt_logo.png">
+    <title>Quản lý Đơn hàng | Admin <?php echo SITE_NAME; ?></title>
+    <link rel="shortcut icon" href="<?php echo SITE_LOGO_PREFIX . SITE_LOGO; ?>">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
     <link href="../home/css/bootstrap.min.css" rel="stylesheet">
-    <link href="css/admin.css?v=1.5" rel="stylesheet">
+    <link href="css/admin.css?v=1.6" rel="stylesheet">
     <script src="../home/js/jquery.js"></script>
     <script src="../home/js/bootstrap.min.js"></script>
     <style>
@@ -411,35 +406,13 @@ $c_trash = $link->query("SELECT COUNT(*) FROM orders WHERE status = 'trashed'")-
             .stats-bar { width: 100%; justify-content: space-between; }
         }
 
-        /* Responsive Mobile Layout For Orders Only */
+        /* Order-specific Mobile Table Scaling */
         @media (max-width: 768px) {
-            .admin-sidebar {
-                display: none !important;
+            .admin-header h1 { font-size: 24px !important; }
+            .table-custom, .table-custom tbody, .table-custom tr, .table-custom td {
+                display: block; width: 100%;
             }
-
-            .admin-main {
-                margin-left: 0 !important;
-                width: 100% !important;
-                padding: 15px !important;
-            }
-
-            .admin-header h1 {
-                font-size: 24px !important;
-            }
-
-            .table-custom,
-            .table-custom tbody,
-            .table-custom tr,
-            .table-custom td {
-                display: block;
-                width: 100%;
-            }
-
-            .table-custom thead {
-                display: none;
-                /* Ẩn thẻ tiêu đề bảng trên Mobile */
-            }
-
+            .table-custom thead { display: none; }
             .tab-stats-wrapper {
                 flex-direction: column;
                 align-items: flex-start !important;
@@ -448,129 +421,40 @@ $c_trash = $link->query("SELECT COUNT(*) FROM orders WHERE status = 'trashed'")-
                 padding: 15px;
                 border-radius: 12px;
             }
-
-            .stats-bar {
-                width: 100%;
-                flex-wrap: wrap;
-                gap: 8px;
-            }
-
-            .stat-badge {
-                padding: 4px 10px;
-                font-size: 0.75rem;
-            }
-
+            .stats-bar { width: 100%; flex-wrap: wrap; gap: 8px; }
+            .stat-badge { padding: 4px 10px; font-size: 0.75rem; }
             .table-custom tbody tr {
                 margin-bottom: 20px;
                 padding: 15px;
                 border: 1px solid #e2e8f0;
                 border-radius: 12px;
-                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
             }
-
-            .table-custom td {
-                padding: 8px 0;
-                border: none !important;
-                text-align: left;
-            }
-
+            .table-custom td { padding: 8px 0; border: none !important; text-align: left; }
             .table-custom td:last-child {
                 margin-top: 10px;
                 border-top: 1px dashed #cbd5e1 !important;
                 padding-top: 15px;
             }
-
-            /* Gọn gàng ID và Badge - Ở góc trái */
-            .mobile-id-badge {
-                float: left;
-                margin-bottom: 5px;
-                border: none;
-                width: auto !important;
-                padding: 0 !important;
-                font-size: 0.9rem;
-            }
-
-            /* Dàn nút ngang 50/50 */
+            .mobile-id-badge { float: left; margin-bottom: 5px; width: auto !important; padding: 0 !important; }
             .table-custom td.text-center {
                 text-align: left !important;
                 display: flex;
                 justify-content: space-between;
                 gap: 4%;
             }
-
-            .btn-action {
-                display: block;
-                width: 48%;
-                margin: 0;
-                padding: 6px;
-                font-size: 0.85rem;
-            }
-
-            .btn-action.btn-delete {
-                width: 48%;
-                margin: 0;
-            }
-
-            .row-new {
-                border-left: none !important;
-                border-top: 5px solid #facc15 !important;
-            }
-
-            .row-warning {
-                border-left: none !important;
-                border-top: 5px solid #ef4444 !important;
-            }
+            .btn-action { display: block; width: 48%; margin: 0; padding: 6px; font-size: 0.85rem; }
+            .row-new { border-left: none !important; border-top: 5px solid #facc15 !important; }
+            .row-warning { border-left: none !important; border-top: 5px solid #ef4444 !important; }
         }
+
     </style>
 </head>
 
 <body>
 
     <!-- Sidebar -->
-    <aside class="admin-sidebar">
-        <div class="sidebar-header">
-            <img src="../home/imgs/logo/mt_logo.png" alt="Logo" style="height: 40px; margin-bottom: 10px;">
-            <h2>MẪU CNC</h2>
-            <p style="font-size: 12px; color: #95a5a6; margin: 0;">Admin Portal</p>
-        </div>
-        <div class="sidebar-nav">
-            <div class="cache-switch-container">
-                <div class="switch-label">
-                    <span>Trạng thái Cache</span>
-                    <i class="fa fa-bolt" style="color: <?= $cacheEnabled ? 'var(--accent-emerald)' : '#64748b' ?>"></i>
-                </div>
-                <form method="post" action="toggle_cache.php" id="cacheForm">
-                    <!-- 
-                        GIẢI THÍCH BẢO MẬT: CSRF CHO TOGGLE CACHE
-                        Ngay cả những hành động cấu hình hệ thống nhỏ cũng cần CSRF 
-                        để tránh bị tin tặc lừa Admin bấm vào link lạ làm thay đổi 
-                        tình trạng vận hành của Website.
-                    -->
-                    <input type="hidden" name="csrf_token" value="<?php echo Security\generate_csrf_token(); ?>">
-                    <label class="toggle-switch">
-                        <input type="checkbox" name="cache_toggle"
-                            onchange="document.getElementById('cacheForm').submit()" <?= $cacheEnabled ? 'checked' : '' ?>>
-                        <span class="slider"><span class="slider-text"></span></span>
-                    </label>
-                </form>
-            </div>
-
-            <div class="nav-group-title">Menu Chính</div>
-            <ul>
-                <li><a href="admin.php"><i class="fa fa-home mr-2"></i> <span>Tổng quan</span></a></li>
-                <li><a href="orders.php" class="active"><i class="fa fa-shopping-cart mr-2"></i> <span>Quản lý Đơn
-                            hàng</span></a></li>
-                <li><a href="addproduct"><i class="fa fa-plus-circle mr-2"></i> <span>Thêm sản phẩm</span></a></li>
-                <li><a href="changepass.php"><i class="fa fa-key mr-2"></i> <span>Đổi mật khẩu</span></a></li>
-                <li><a href="logout.php"><i class="fa fa-sign-out mr-2"></i> <span>Đăng xuất</span></a></li>
-            </ul>
-
-            <div class="nav-group-title mt-4">Danh mục sản phẩm</div>
-            <ul class="category-list">
-                <?php echo $show_protype; ?>
-            </ul>
-        </div>
-    </aside>
+    <?php include "sidebar_admin.php"; ?>
 
     <!-- Main Content -->
     <main class="admin-main">
@@ -580,7 +464,7 @@ $c_trash = $link->query("SELECT COUNT(*) FROM orders WHERE status = 'trashed'")-
                     <h1 style="font-weight: 700; font-size: 28px; margin: 0;">Quản lý Đơn Đặt Hàng</h1>
                     <p class="text-muted">Xem và quản lý các yêu cầu chốt file từ khách hàng</p>
                 </div>
-                <img src="../home/imgs/logo/mt_logo.png" width="40" alt="Admin Badge" style="border-radius: 50%;">
+                <img src="<?php echo SITE_LOGO_PREFIX . SITE_LOGO; ?>" width="40" alt="Admin Badge" style="border-radius: 50%;">
             </div>
 
             <div class="header-tabs">

@@ -1,11 +1,13 @@
 <?php
+namespace Security;
+
+if (!defined('MT_CNC_AUTH'))
+    exit('Access Denied');
+
 /**
  * Security Library
- * ──────────────────────────────────────────
- * Mục tiêu: Cung cấp các phòng thủ chuẩn hóa cho toàn bộ hệ thống.
  */
 
-namespace Security;
 
 // THIẾT LẬP MÚI GIỜ HỆ THỐNG (VIỆT NAM)
 date_default_timezone_set('Asia/Ho_Chi_Minh');
@@ -80,7 +82,7 @@ function validate_id($id)
 
 function is_recaptcha_enabled()
 {
-    return strtolower((string) RECAPTCHA_ENABLED) === 'true';
+    return strtolower((string) \RECAPTCHA_ENABLED) === 'true';
 }
 
 /**
@@ -183,7 +185,7 @@ function verify_recaptcha($response)
     // Fail-closed: Nếu thiếu Key ở Production, mặc định là CHẶN (False). 
     // Chỉ cho phép đi qua ở môi trường 'local' để thuận tiện phát triển.
     if (empty($secret))
-        return (defined('APP_ENV') && APP_ENV === 'local');
+        return (defined('\APP_ENV') && \APP_ENV === 'local');
 
     $verify_url = "https://www.google.com/recaptcha/api/siteverify";
     $data = [
@@ -231,7 +233,7 @@ function secure_session_start()
         // Điều này ngăn chặn việc session bị đánh cắp khi admin dùng mạng 
         // công cộng không an toàn (Sniffing).
 
-        $secure = (APP_ENV === 'production') || (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on');
+        $secure = (\APP_ENV === 'production') || (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on');
         $httponly = true;
         $samesite = 'Lax';
         // -------------------------------------------------------------
@@ -256,9 +258,9 @@ function secure_session_start()
         // -------------------------------------------------------------
         // Mục tiêu: Nếu bạn đổi SESSION_VERSION trong .env, toàn bộ người dùng 
         // sẽ được reset session để tránh xung đột hoặc lỗi bảo mật cũ.
-        if (!isset($_SESSION['SESSION_VERSION']) || $_SESSION['SESSION_VERSION'] !== SESSION_VERSION) {
+        if (!isset($_SESSION['SESSION_VERSION']) || $_SESSION['SESSION_VERSION'] !== \SESSION_VERSION) {
             session_unset(); // Xóa sạch dữ liệu cũ
-            $_SESSION['SESSION_VERSION'] = SESSION_VERSION; // Ghi nhận phiên bản mới
+            $_SESSION['SESSION_VERSION'] = \SESSION_VERSION; // Ghi nhận phiên bản mới
         }
         // -------------------------------------------------------------
 
@@ -285,10 +287,21 @@ function secure_session_start()
             "font-src 'self' https://maxcdn.bootstrapcdn.com https://fonts.gstatic.com; " .
             "img-src 'self' data: https://openseadragon.github.io https://www.google.com https://www.gstatic.com; " .
             "frame-src 'self' https://www.google.com; " .
-            "connect-src 'self' https://www.google.com https://www.gstatic.com https://plain-term-3853.ngoquangvy97.workers.dev;");
+            "connect-src 'self' https://www.google.com https://www.gstatic.com https://telegarmworker.ngoquangvy97.workers.dev;");
 
         // -------------------------------------------------------------
     }
+}
+
+/**
+ * LOG NOTIFICATION FAILURE (Ghi nhật ký lỗi thông báo/Bot)
+ */
+function log_notification_failure($reason, $source = 'system')
+{
+    $log_file = __DIR__ . '/../admin/logs/notif_error.log';
+    $timestamp = date("Y-m-d H:i:s");
+    $log_msg = "[$timestamp] [$source] ALERT: $reason\n";
+    @file_put_contents($log_file, $log_msg, FILE_APPEND);
 }
 
 // KHỞI CHẠY SESSION AN TOÀN NGAY LẬP TỨC

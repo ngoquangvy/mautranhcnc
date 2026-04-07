@@ -1,4 +1,7 @@
 <?php
+// AUTHORIZATION KEY - Prevents direct access to search/include files
+if (!defined('MT_CNC_AUTH')) define('MT_CNC_AUTH', true);
+
 /* 
  * 1. TỰ ĐỘNG NẠP CẤU HÌNH .ENV (DÙNG CHO SERVER TRUYỀN THỐNG / XAMPP)
  * ────────────────────────────────────────────────────────────────
@@ -81,4 +84,6 @@ define('SENDER_EMAIL', getenv('SENDER_EMAIL') ?: 'bot@yourdomain.com');
 define('ADMIN_EMAIL', getenv('ADMIN_EMAIL') ?: 'admin@yourdomain.com');
 // -------------------------------------------------------------
 
+// Nạp cấu hình Website (Tên shop, Logo, Watermark...)
+require_once __DIR__ . "/config_site.php";
 ?>

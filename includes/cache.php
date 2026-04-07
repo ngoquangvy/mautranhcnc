@@ -1,4 +1,5 @@
 <?php
+if (!defined('MT_CNC_AUTH')) exit('Access Denied');
 /**
  * FileCache — Server-side Page Cache
  * ─────────────────────────────────

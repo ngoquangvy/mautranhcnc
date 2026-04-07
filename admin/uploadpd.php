@@ -54,24 +54,19 @@ function addWatermark($target_file)
     $margin = 20;
 
     // ╔══════════════════════════════════════════════════════╗
-    // ║          WATERMARK SETTINGS — Chỉnh tại đây!        ║
+    // ║          WATERMARK SETTINGS (Centralized)           ║
     // ╠══════════════════════════════════════════════════════╣
-    // ║  BẬT / TẮT (true = bật, false = tắt)               ║
-    $wm_show_logo = false;   // Hiện logo MT
-    $wm_show_text = true;   // Hiện chữ "MauTranhCNC.com"
-    $wm_show_circle = false;  // Hiện nền tròn trắng phía sau logo
-    // ║                                                      ║
-    // ║  KÍCH THƯỚC & VỊ TRÍ                                ║
-    $wm_logo_size = 0.35;   // Logo: tỉ lệ theo cạnh ngắn ảnh (0.0 – 1.0)
-    $wm_text_size = 0.08;   // Chữ: tỉ lệ chiều cao cạnh ngắn   (0.0 – 0.2)
-    // ║                                                      ║
-    // ║  ĐỘ MỜ                                              ║
-    $wm_logo_opacity = 20;    // Logo: 0 = ẩn  →  100 = hiện rõ
-    $wm_text_alpha = 100;    // Chữ: 0 = rõ   →  127 = ẩn hoàn toàn
-    $wm_circle_alpha = 115;   // Nền tròn: 0 = đặc → 127 = ẩn (chỉ dùng khi $wm_show_circle = true)
+    $wm_show_logo = WM_SHOW_LOGO;
+    $wm_show_text = WM_SHOW_TEXT;
+    $wm_show_circle = WM_SHOW_CIRCLE;
+    $wm_logo_size = WM_LOGO_SIZE;
+    $wm_text_size = WM_TEXT_SIZE;
+    $wm_logo_opacity = WM_LOGO_OPACITY;
+    $wm_text_alpha = WM_TEXT_ALPHA;
+    $wm_circle_alpha = WM_CIRCLE_ALPHA;
     // ╚══════════════════════════════════════════════════════╝
 
-    $logo_path = "../home/imgs/logo/mt_logo.png";
+    $logo_path = realpath(__DIR__ . '/' . WM_LOGO_RELATIVE_PATH);
     $short_side = min($width, $height);
     $cx = $width / 2;  // tâm ngang ảnh
     $cy = $height / 2;  // tâm dọc ảnh
@@ -113,7 +108,7 @@ function addWatermark($target_file)
 
     // ── 2. TEXT ──────────────────────────────────────────
     if ($wm_show_text) {
-        $text = "MauTranhCNC.com";
+        $text = WM_TEXT;
         $font_base = 5; // font lớn nhất của PHP built-in
 
         // Scale chữ lên theo cạnh ngắn ảnh (vẽ vào canvas nhỏ rồi phóng to)
@@ -177,7 +172,7 @@ function addWatermark($target_file)
 // GIẢI PHÁP: Dùng __DIR__ để khóa cứng vị trí file vật lý.
 
 $upload_dir = realpath(__DIR__ . '/../home/imgs') . DIRECTORY_SEPARATOR;
-$logo_path = realpath(__DIR__ . '/../home/imgs/logo/mt_logo.png');
+$logo_path = realpath(__DIR__ . '/' . WM_LOGO_RELATIVE_PATH);
 // -------------------------------------------------------------
 
 $error_logs = [];
