@@ -22,6 +22,7 @@ yarn-error.log*
 
 # Database (Backup/Exports)
 *.sql
+!database/mautuongcnc.sql
 *.sqlite
 
 # IDE & OS
