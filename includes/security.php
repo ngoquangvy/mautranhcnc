@@ -292,12 +292,30 @@ function secure_session_start()
         // 4. Content-Security-Policy (CSP): Lớp bảo mật mạnh mẽ nhất 
         // giúp ngăn chặn XSS bằng cách quy định rõ nguồn nạp Script/Style.
         header("Content-Security-Policy: default-src 'self'; " .
-            "script-src 'self' 'unsafe-inline' https://openseadragon.github.io https://maxcdn.bootstrapcdn.com https://fonts.googleapis.com https://www.google.com https://www.gstatic.com https://static.cloudflareinsights.com; " .
-            "style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com https://fonts.googleapis.com https://www.google.com; " .
-            "font-src 'self' https://maxcdn.bootstrapcdn.com https://fonts.gstatic.com; " .
-            "img-src 'self' data: https://openseadragon.github.io https://www.google.com https://www.gstatic.com; " .
+
+            "script-src 'self' 'unsafe-inline' 
+    https://cdnjs.cloudflare.com 
+    https://openseadragon.github.io 
+    https://maxcdn.bootstrapcdn.com 
+    https://www.google.com 
+    https://www.gstatic.com 
+    https://static.cloudflareinsights.com; " .
+
+            "style-src 'self' 'unsafe-inline' 
+    https://maxcdn.bootstrapcdn.com 
+    https://fonts.googleapis.com; " .
+
+            "font-src 'self' https://fonts.gstatic.com; " .
+
+            "img-src 'self' data: blob: 
+    https://openseadragon.github.io; " .
+
             "frame-src 'self' https://www.google.com; " .
-            "connect-src 'self' https://www.google.com https://www.gstatic.com https://telegarmworker.ngoquangvy97.workers.dev;");
+
+            "connect-src 'self' 
+    https://www.google.com 
+    https://www.gstatic.com 
+    https://mautranhtelegarm.ngoquangvy97.workers.dev;");
 
         // -------------------------------------------------------------
     }

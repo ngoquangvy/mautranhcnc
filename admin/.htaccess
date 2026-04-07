@@ -1,5 +1,5 @@
 # Tăng giới hạn tải tệp cho Admin Panel
 # Mặc định PHP chỉ cho phép tối đa 20 files/lần — quá ít cho Admin
-php_value max_file_uploads 100
-php_value post_max_size 512M
-php_value upload_max_filesize 50M
+# php_value max_file_uploads 100
+# php_value post_max_size 512M
+# php_value upload_max_filesize 50M
