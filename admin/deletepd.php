@@ -42,11 +42,14 @@ if (isset($_SESSION['id'])) {
     $imagePath = $basePath . $clean_filename;
     // -------------------------------------------------------------
 
-    if (file_exists($imagePath)) {
-        unlink($imagePath);
-    }
-
+    $deleted = false;
     if ($stmt->execute()) {
+        $deleted = true;
+        // 4. CHỈ XÓA FILE VẬT LÝ KHI DATABASE ĐÃ XÓA THÀNH CÔNG
+        // Điều này đảm bảo không bao giờ xảy ra tình trạng "Ảnh vỡ" trên giao diện.
+        if ($stmt->affected_rows > 0 && file_exists($imagePath)) {
+            @unlink($imagePath);
+        }
         echo 'deleted';
     } else {
         echo "error";

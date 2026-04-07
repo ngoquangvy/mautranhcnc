@@ -36,6 +36,22 @@ $result_types = $link->query($sql_types);
     <link href="../css/admin.css?v=<?php echo time(); ?>" rel="stylesheet">
     <script src="../../home/js/jquery.js"></script>
     <script src="../../home/js/bootstrap.min.js"></script>
+    <style>
+        .progress-container {
+            display: none;
+            margin-bottom: 20px;
+        }
+        .progress {
+            background-color: rgba(255, 255, 255, 0.1);
+            height: 12px;
+            border-radius: 10px;
+        }
+        .progress-bar {
+            background: linear-gradient(90deg, var(--accent-blue), #60a5fa);
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+            transition: width 0.3s ease;
+        }
+    </style>
 </head>
 
 <body>
@@ -90,6 +106,16 @@ $result_types = $link->query($sql_types);
                             placeholder="Thông tin chi tiết về mẫu..."></textarea>
                     </div>
 
+                    <div id="uploadProgressContainer" class="progress-container">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span id="uploadStatusText" style="font-weight: 600; font-size: 14px; color: var(--accent-blue);">Đang tải lên...</span>
+                            <span id="uploadPercentage" style="font-weight: 700; font-size: 14px; color: var(--accent-blue);">0%</span>
+                        </div>
+                        <div class="progress">
+                            <div id="uploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                        </div>
+                    </div>
+
                     <button id="uploadButton" class="btn btn-primary btn-lg" disabled>
                         <i class="fa fa-upload mr-2"></i> HÃY CHỌN ẢNH ĐỂ BẮT ĐẦU
                     </button>
@@ -108,8 +134,15 @@ $result_types = $link->query($sql_types);
                         <li>Hệ thống sẽ tự động nén ảnh xuống dưới <b>500KB</b> để web tải nhanh hơn.</li>
                         <li>Tên mẫu sẽ tự động đánh số (ví dụ: Tranh 1, Tranh 2...) nếu bạn tải lên nhiều tấm một lượt.
                         </li>
-                        <li>Nếu bạn sửa dụng lại tên <b>loại danh mục</b> đã có, sản phẩm sẽ được thêm vào thư mục đó.
+                        <li>Nếu bạn sử dụng lại tên <b>loại danh mục</b> đã có, sản phẩm sẽ được thêm vào thư mục đó.
                         </li>
+                    </ul>
+                    <hr style="border-color: rgba(255,255,255,0.15); margin: 15px 0;">
+                    <h6 style="font-weight: 700; font-size: 13px;"><i class="fa fa-server mr-2"></i> Giới hạn Server</h6>
+                    <ul class="mt-2" style="font-size: 12px; line-height: 1.8; padding-left: 15px; color: #95a5a5;">
+                        <li>Tối đa <b style="color:#60a5fa;">100 ảnh</b> mỗi lần tải lên</li>
+                        <li>Dung lượng mỗi ảnh tối đa <b style="color:#60a5fa;">50MB</b></li>
+                        <li>Tổng dung lượng tối đa <b style="color:#60a5fa;">512MB</b> / lần gửi</li>
                     </ul>
                 </div>
 

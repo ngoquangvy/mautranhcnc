@@ -1,5 +1,10 @@
 <?php
+// Bắt đầu buffer output - chặn bất kỳ output nào từ connectdb/security
+// tránh làm hỏng response JSON (lỗi "Phản hồi từ máy chủ không hợp lệ")
+ob_start();
 require_once "../includes/connectdb.php";
+// Xóa bất kỳ output nào đã bị emit bởi các thư viện bên dưới
+ob_clean();
 
 // Set header to JSON for all responses
 header('Content-Type: application/json');
@@ -178,6 +183,11 @@ $logo_path = realpath(__DIR__ . '/' . WM_LOGO_RELATIVE_PATH);
 $error_logs = [];
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // 0. DYNAMIC TIMEOUT: Cộng dồn thời gian chờ (15s mỗi ảnh + 60s đệm)
+    $file_count = count($_FILES);
+    $dynamic_timeout = ($file_count * 15) + 60;
+    @set_time_limit($dynamic_timeout);
+
     // 1. KIỂM TRA CSRF TOKEN
     if (!isset($_POST['csrf_token']) || !Security\verify_csrf_token($_POST['csrf_token'])) {
         sendError("Lỗi bảo mật: CSRF Token không hợp lệ!");

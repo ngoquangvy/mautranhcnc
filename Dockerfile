@@ -21,6 +21,14 @@ RUN a2enmod rewrite
 # Allow .htaccess overrides
 RUN sed -i '/<Directory \/var\/www\/>/,/<\/Directory>/ s/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf
 
+# Tăng giới hạn tải file (max_file_uploads mặc định chỉ là 20 - quá ít cho Admin)
+RUN { \
+    echo 'max_file_uploads = 100'; \
+    echo 'post_max_size = 512M'; \
+    echo 'upload_max_filesize = 50M'; \
+    echo 'memory_limit = 256M'; \
+} > /usr/local/etc/php/conf.d/admin-upload.ini
+
 # Copy the application code to the container
 WORKDIR /var/www/html
 

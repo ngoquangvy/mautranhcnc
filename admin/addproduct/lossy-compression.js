@@ -137,30 +137,68 @@ document.getElementById('uploadButton').addEventListener('click', function () {
         return;
     }
 
-    // Gửi FormData lên máy chủ (ví dụ: sử dụng fetch hoặc XMLHttpRequest)
-    fetch('../uploadpd.php', {
-        method: 'POST',
-        body: formData
-    })
-        .then(response => {
-            if (response.ok) {
-                // Xử lý phản hồi thành công
-                return response.json(); // Đọc nội dung của phản hồi dưới dạng văn bản
+    // Lấy các phần tử Progress Bar
+    const progressContainer = document.getElementById('uploadProgressContainer');
+    const progressBar = document.getElementById('uploadProgressBar');
+    const progressPercentage = document.getElementById('uploadPercentage');
+    const uploadStatusText = document.getElementById('uploadStatusText');
+
+    // Cấu hình XMLHttpRequest để theo dõi tiến trình
+    const xhr = new XMLHttpRequest();
+
+    // 1. Theo dõi tiến trình tải lên (upload.onprogress)
+    xhr.upload.onprogress = function(event) {
+        if (event.lengthComputable) {
+            const percentComplete = Math.round((event.loaded / event.total) * 100);
+            
+            // Hiển thị thanh progress
+            progressContainer.style.display = 'block';
+            progressBar.style.width = percentComplete + '%';
+            progressPercentage.textContent = percentComplete + '%';
+            
+            if (percentComplete < 100) {
+                uploadStatusText.textContent = 'Đang tải lên...';
             } else {
-                // Xử lý phản hồi lỗi
-                throw new Error('Upload failed');
+                uploadStatusText.textContent = 'Đang xử lý trên máy chủ...';
             }
-        })
-        .then(data => {
-            // Xử lý dữ liệu từ phản hồi
-            //console.log(data); // In dữ liệu từ phản hồi lên console
-            alert('Upload successful!'); // Hiển thị thông báo upload thành công
-            compressedImagesList.innerHTML = ''; // xóa ảnh sau khi update xong
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Upload failed!');
-        });
+        }
+    };
+
+    // 2. Xử lý khi hoàn tất
+    xhr.onload = function() {
+        if (xhr.status === 200) {
+            try {
+                const data = JSON.parse(xhr.responseText);
+                if (data.status === 'success' || data.status === 'partial_success') {
+                    alert('Tải lên thành công!');
+                    compressedImagesList.innerHTML = '';
+                    // Reset UI
+                    progressContainer.style.display = 'none';
+                    progressBar.style.width = '0%';
+                    uploadButton.textContent = 'Hãy chọn ảnh';
+                    uploadButton.disabled = true;
+                } else {
+                    alert('Lỗi: ' + (data.message || 'Không rõ nguyên nhân'));
+                }
+            } catch (e) {
+                alert('Phản hồi từ máy chủ không hợp lệ. Vui lòng kiểm tra Console (F12).');
+                console.error('Lỗi JSON parse:', xhr.responseText);
+            }
+        } else {
+            alert('Lỗi kết nối máy chủ (Code: ' + xhr.status + ')');
+        }
+    };
+
+    // 3. Xử lý khi có lỗi mạng
+    xhr.onerror = function() {
+        alert('Lỗi kết nối mạng, vui lòng thử lại.');
+    };
+
+    // Gửi yêu cầu
+    xhr.open('POST', '../uploadpd.php', true);
+    uploadButton.disabled = true;
+    uploadButton.textContent = 'Uploading...';
+    xhr.send(formData);
 });
 
 // Hàm chuyển đổi base64 thành Blob

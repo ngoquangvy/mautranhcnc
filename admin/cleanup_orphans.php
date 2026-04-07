@@ -1,30 +1,44 @@
+<?php
 require_once "../includes/connectdb.php";
+require_once "../includes/security.php";
+
+// Đảm bảo MT_CNC_AUTH được định nghĩa để nạp security.php
+if (!defined('MT_CNC_AUTH')) define('MT_CNC_AUTH', true);
+
+/**
+ * CÔNG CỤ DỌN DẸP ẢNH RÁC (Developer Only)
+ * ──────────────────────────────────────
+ * Chế độ 1: Liệt kê (Mặc định) -> Thêm ?key=MẬT_MÃ_CỦA_BẠN
+ * Chế độ 2: Xóa thực sự -> Thêm ?key=MẬT_MÃ_CỦA_BẠN&confirm=true
+ */
+
+// 1. KIỂM TRA CHÌA KHÓA DEV (Từ file .env)
+$dev_key = getenv('DEV_CLEANUP_KEY') ?: '';
+$provided_key = $_GET['key'] ?? '';
+
+// Ghi nhật ký truy cập (Audit Log)
+$log_file = __DIR__ . '/logs/security.log';
+$timestamp = date("Y-m-d H:i:s");
+$ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+$log_msg = "[$timestamp] [CLEANUP] Access Attempt: IP=$ip, Key=" . ($provided_key === $dev_key ? 'MATCH' : 'DENIED') . ", Confirm=" . ($_GET['confirm'] ?? 'false') . "\n";
+@file_put_contents($log_file, $log_msg, FILE_APPEND);
+
+// Chặn nếu sai mã hoặc chưa cấu hình mã
+if (empty($dev_key) || $provided_key !== $dev_key) {
+    header('HTTP/1.0 403 Forbidden');
+    echo json_encode(["status" => "error", "message" => "Access Denied. Secret Key required."], JSON_PRETTY_PRINT);
+    exit;
+}
 
 if (!isset($_SESSION['id'])) {
-    die("Unauthorized");
+    die("Unauthorized (Session expired)");
 }
-
-// -------------------------------------------------------------
-// GIẢI THÍCH BẢO MẬT: PHÒNG THỦ CHIỀU SÂU
-// -------------------------------------------------------------
-/*
-// MÃ LỖI (GIẢ ĐỊNH) - CỰC KỲ NGUY HIỂM:
-// 1. Không check SESSION: Bất kỳ ai biết URL cũng có thể kích hoạt dọn dẹp file.
-// 2. Không check CSRF: Admin đang đăng nhập có thể bị lừa bấm vào link ẩn 
-//    và xóa sạch kho ảnh của shop.
-// 3. Thiếu sanitize filename: Scanner có thể bị lừa xóa cả file hệ thống khác.
-
-$dir_files = scandir("../home/imgs/");
-foreach ($dir_files as $f) {
-   if (!in_array($f, $db_imgs)) unlink("../home/imgs/" . $f);
-}
-*/
-// -------------------------------------------------------------
 
 $upload_dir = "../home/imgs/";
 $system_files = ['.htaccess', 'logo', 'logo_watermark.png', '.', '..'];
+$confirm_delete = (isset($_GET['confirm']) && $_GET['confirm'] === 'true');
 
-// 1. Get all images from Database
+// 1. Lấy danh sách ảnh đang dùng trong Database
 $db_images = [];
 $sql = "SELECT prourl FROM products";
 $result = $link->query($sql);
@@ -34,33 +48,47 @@ if ($result) {
     }
 }
 
-// 2. Scan physical directory
+// 2. Quét thư mục ảnh vật lý
 $dir_files = scandir($upload_dir);
 $deleted_count = 0;
 $kept_count = 0;
 $orphans = [];
 
 foreach ($dir_files as $file) {
-    // Skip system files and directories
+    // Bỏ qua các file hệ thống quan trọng
     if (in_array($file, $system_files) || is_dir($upload_dir . $file)) {
         continue;
     }
 
-    // Check if file exists in DB
+    // Nếu ảnh KHÔNG nằm trong DB -> Là ảnh mồ côi (ảnh rác)
     if (!in_array($file, $db_images)) {
         $orphans[] = $file;
-        if (unlink($upload_dir . $file)) {
-            $deleted_count++;
+        if ($confirm_delete) {
+            if (@unlink($upload_dir . $file)) {
+                $deleted_count++;
+            }
         }
     } else {
         $kept_count++;
     }
 }
 
-echo json_encode([
+// Trả về kết quả
+$response = [
     "status" => "success",
-    "total_checked" => count($dir_files),
-    "deleted_orphans" => $deleted_count,
-    "kept_active" => $kept_count,
-    "orphaned_list" => $orphans
-], JSON_PRETTY_PRINT);
+    "mode" => $confirm_delete ? "DELETION_MODE" : "DRY_RUN_MODE",
+    "summary" => [
+        "total_files_scanned" => count($dir_files),
+        "active_images_kept" => $kept_count,
+        "orphans_found" => count($orphans),
+        "orphans_deleted" => $deleted_count
+    ],
+    "orphans_list" => $orphans
+];
+
+if (!$confirm_delete && count($orphans) > 0) {
+    $response["instruction"] = "Để thực hiện xóa thực sự, hãy thêm tham số '&confirm=true' vào URL.";
+}
+
+header('Content-Type: application/json');
+echo json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
