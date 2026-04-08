@@ -120,7 +120,7 @@ include "header_site.php";
   "@context": "https://schema.org",
   "@type": "Product",
   "name": "<?php echo Security\h($proname); ?>",
-  "image": "https://mautranhcnc.com/home/imgs/<?php echo Security\h($show_product); ?>",
+  "image": "<?php echo SITE_URL; ?>/home/imgs/<?php echo Security\h($show_product); ?>",
   "description": "<?php echo Security\h($pageDesc); ?>",
   "brand": { "@type": "Brand", "name": "<?php echo SITE_NAME; ?>" }
 }

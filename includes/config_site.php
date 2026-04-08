@@ -7,6 +7,12 @@ if (!defined('MT_CNC_AUTH'))
  * Edit this file to update info across the entire website.
  */
 
+// Site Domain & URL (Đọc từ .env, mặc định là mautuonggiare.com)
+if (!defined('SITE_DOMAIN'))
+    define('SITE_DOMAIN', getenv('SITE_DOMAIN') ?: 'mautuonggiare.com');
+if (!defined('SITE_URL'))
+    define('SITE_URL', 'https://' . SITE_DOMAIN);
+
 // Site Identity
 if (!defined('SITE_NAME'))
     define('SITE_NAME', 'Mẫu tượng giá rẻ');

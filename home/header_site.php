@@ -10,7 +10,7 @@ if (!defined('MT_CNC_AUTH')) exit('Access Denied');
 $displayId = isset($id) ? Security\h($id) : "";
 $pageTitle = !empty($displayId) ? $displayId . " - " . SITE_NAME : SITE_NAME . " - Kiến tạo không gian tâm linh tinh xảo";
 $pageDesc = !empty($displayId) ? "Danh mục " . $displayId . ". " . SITE_DESCRIPTION : SITE_DESCRIPTION;
-$canonicalUrl = "https://mautranhcnc.com/home/" . basename($_SERVER['PHP_SELF']) . (isset($id) ? "?id=" . urlencode($id) : "");
+$canonicalUrl = SITE_URL . "/home/" . basename($_SERVER['PHP_SELF']) . (isset($id) ? "?id=" . urlencode($id) : "");
 ?>
 <!DOCTYPE html>
 <html lang="vi">
